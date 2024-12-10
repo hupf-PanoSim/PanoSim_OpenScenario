@@ -1,6 +1,6 @@
 <World readonly="false">
   <Field link="" />
-  <Net link="CarlaTown01\CarlaTown01New.net.xml" Seed="0" Style="City" Elevation="false">
+  <Net link="CarlaTown01\CarlaTown01.net.xml" Seed="0" Style="City" Elevation="false">
     <Lanes Texture="Asphalt" FrictionCoefficient="0.8" Wetness="0" SnowPack="0" Cracks="0.1" Dirtiness="0.3" Opacity="1" />
     <LaneLines />
     <Junctions />
