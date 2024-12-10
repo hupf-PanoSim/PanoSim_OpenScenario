@@ -7,8 +7,6 @@ generate relevant type objects in the standard library, and set parameters
 import sys
 from typing import List, Tuple
 
-import carla
-
 import srunner.osc2_stdlib.misc_object as misc
 import srunner.osc2_stdlib.variables as variable
 import srunner.osc2_stdlib.vehicle as vehicles
@@ -24,7 +22,7 @@ from srunner.osc2_stdlib.path import Path
 from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration
 
 # pylint: enable=line-too-long
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimWeather
 
 # OSC2
 from srunner.tools.osc2_helper import OSC2Helper
@@ -44,6 +42,7 @@ def flat_list(list_of_lists):
 
 class OSC2ScenarioConfiguration(ScenarioConfiguration):
     def __init__(self, filename, client):
+        super().__init__()
         self.name = self.filename = filename
         self.ast_tree = OSC2Helper.gen_osc2_ast(self.filename)
 
@@ -56,7 +55,7 @@ class OSC2ScenarioConfiguration(ScenarioConfiguration):
         self.variables = {}
         self.unit_dict = {}
         self.physical_dict = {}
-        self.weather = carla.WeatherParameters()
+        self.weather = PanoSimWeather()
         # 默认为白天
         self.weather.sun_azimuth_angle = 45
         self.weather.sun_altitude_angle = 70
@@ -424,10 +423,10 @@ class OSC2ScenarioConfiguration(ScenarioConfiguration):
             self.client.load_world(self.town)
             world = self.client.get_world()
 
-            CarlaDataProvider.set_world(world)
-            if CarlaDataProvider.is_sync_mode():
+            PanoSimDataProvider.set_world(world)
+            if PanoSimDataProvider.is_sync_mode():
                 world.tick()
             else:
                 world.wait_for_tick()
         else:
-            CarlaDataProvider.set_world(world)
+            PanoSimDataProvider.set_world(world)

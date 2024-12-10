@@ -11,14 +11,17 @@ Support class of the MetricsManager to parse the information of
 the CARLA recorder into a readable dictionary
 """
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimLocation, PanoSimRotation, PanoSimTransform, PanoSimVehicleControl
+from srunner.scenariomanager.data_provider import PanoSimVector3D, PanoSimVehicleLightState, PanoSimTrafficLightState, PanoSimColor, PanoSimLightGroup
+from srunner.scenariomanager.data_provider import PanoSimVector2D, PanoSimBoundingBox, PanoSimGearPhysicsControl, PanoSimWheelPhysicsControl
+from srunner.scenariomanager.data_provider import PanoSimVehiclePhysicsControl, PanoSimLightState
 
 
 def parse_actor(info):
     """Returns a dictionary with the basic actor information"""
     actor = {
         "type_id": info[2],
-        "location": carla.Location(
+        "location": PanoSimLocation(
             x=float(info[5][1:-1]) / 100,
             y=float(info[6][:-1]) / 100,
             z=float(info[7][:-1]) / 100
@@ -27,24 +30,24 @@ def parse_actor(info):
     return actor
 
 def parse_transform(info):
-    """Parses a list into a carla.Transform"""
-    transform = carla.Transform(
-        carla.Location(
+    """Parses a list into a PanoSimTransform"""
+    transform = PanoSimTransform(
+        PanoSimLocation(
             x=float(info[3][1:-1]) / 100,
             y=float(info[4][:-1]) / 100,
             z=float(info[5][:-1]) / 100,
         ),
-        carla.Rotation(
+        PanoSimRotation(
             roll=float(info[7][1:-1]),
-            pitch=float(info[8][:-1]), 
+            pitch=float(info[8][:-1]),
             yaw=float(info[9][:-1])
         )
     )
     return transform
 
 def parse_control(info):
-    """Parses a list into a carla.VehicleControl"""
-    control = carla.VehicleControl(
+    """Parses a list into a PanoSimVehicleControl"""
+    control = PanoSimVehicleControl(
         throttle=float(info[5]),
         steer=float(info[3]),
         brake=float(info[7]),
@@ -56,20 +59,20 @@ def parse_control(info):
     return control
 
 def parse_vehicle_lights(info):
-    """Parses a list into a carla.VehicleLightState"""
+    """Parses a list into a PanoSimVehicleLightState"""
     srt_to_vlight = {
-        "None": carla.VehicleLightState.NONE,
-        "Position": carla.VehicleLightState.Position,
-        "LowBeam": carla.VehicleLightState.LowBeam,
-        "HighBeam": carla.VehicleLightState.HighBeam,
-        "Brake": carla.VehicleLightState.Brake,
-        "RightBlinker": carla.VehicleLightState.RightBlinker,
-        "LeftBlinker": carla.VehicleLightState.LeftBlinker,
-        "Reverse": carla.VehicleLightState.Reverse,
-        "Fog": carla.VehicleLightState.Fog,
-        "Interior": carla.VehicleLightState.Interior,
-        "Special1": carla.VehicleLightState.Special1,
-        "Special2": carla.VehicleLightState.Special2,
+        "None": PanoSimVehicleLightState.NONE,
+        "Position": PanoSimVehicleLightState.Position,
+        "LowBeam": PanoSimVehicleLightState.LowBeam,
+        "HighBeam": PanoSimVehicleLightState.HighBeam,
+        "Brake": PanoSimVehicleLightState.Brake,
+        "RightBlinker": PanoSimVehicleLightState.RightBlinker,
+        "LeftBlinker": PanoSimVehicleLightState.LeftBlinker,
+        "Reverse": PanoSimVehicleLightState.Reverse,
+        "Fog": PanoSimVehicleLightState.Fog,
+        "Interior": PanoSimVehicleLightState.Interior,
+        "Special1": PanoSimVehicleLightState.Special1,
+        "Special2": PanoSimVehicleLightState.Special2,
     }
 
     lights = []
@@ -81,11 +84,11 @@ def parse_vehicle_lights(info):
 def parse_traffic_light(info):
     """Parses a list into a dictionary with all the traffic light's information"""
     number_to_state = {
-        "0": carla.TrafficLightState.Red,
-        "1": carla.TrafficLightState.Yellow,
-        "2": carla.TrafficLightState.Green,
-        "3": carla.TrafficLightState.Off,
-        "4": carla.TrafficLightState.Unknown,
+        "0": PanoSimTrafficLightState.Red,
+        "1": PanoSimTrafficLightState.Yellow,
+        "2": PanoSimTrafficLightState.Green,
+        "3": PanoSimTrafficLightState.Off,
+        "4": PanoSimTrafficLightState.Unknown,
     }
     traffic_light = {
         "state": number_to_state[info[3]],
@@ -95,8 +98,8 @@ def parse_traffic_light(info):
     return traffic_light
 
 def parse_velocity(info):
-    """Parses a list into a carla.Vector3D with the velocity"""
-    velocity = carla.Vector3D(
+    """Parses a list into a PanoSimVector3D with the velocity"""
+    velocity = PanoSimVector3D(
         x=float(info[3][1:-1]),
         y=float(info[4][:-1]),
         z=float(info[5][:-1])
@@ -104,8 +107,8 @@ def parse_velocity(info):
     return velocity
 
 def parse_angular_velocity(info):
-    """Parses a list into a carla.Vector3D with the angular velocity"""
-    velocity = carla.Vector3D(
+    """Parses a list into a PanoSimVector3D with the angular velocity"""
+    velocity = PanoSimVector3D(
         x=float(info[7][1:-1]),
         y=float(info[8][:-1]),
         z=float(info[9][:-1])
@@ -113,16 +116,16 @@ def parse_angular_velocity(info):
     return velocity
 
 def parse_scene_lights(info):
-    """Parses a list into a carla.VehicleLightState"""
+    """Parses a list into a PanoSimVehicleLightState"""
 
     red = int(float(info[7][1:-1]) * 255)
     green = int(float(info[8][:-1]) * 255)
     blue = int(float(info[9][:-1]) * 255)
 
-    scene_light = carla.LightState(
+    scene_light = PanoSimLightState(
         intensity=int(float(info[5])),
-        color=carla.Color(red, green, blue),
-        group=carla.LightGroup.NONE,
+        color=PanoSimColor(red, green, blue),
+        group=PanoSimLightGroup.NONE,
         active=bool(info[3])
     )
     return scene_light
@@ -133,33 +136,33 @@ def parse_bounding_box(info):
     Some actors like sensors might have 'nan' location and 'inf' extent, so filter those.
     """
     if 'nan' in info[3]:
-        location = carla.Location()
+        location = PanoSimLocation()
     else:
-        location = carla.Location(
+        location = PanoSimLocation(
             float(info[3][1:-1])/100,
             float(info[4][:-1])/100,
             float(info[5][:-1])/100,
         )
 
     if 'inf' in info[7]:
-        extent = carla.Vector3D()
+        extent = PanoSimVector3D()
     else:
-        extent = carla.Vector3D(
+        extent = PanoSimVector3D(
             float(info[7][1:-1])/100,
             float(info[8][:-1])/100,
             float(info[9][:-1])/100,
         )
 
-    bbox = carla.BoundingBox(location, extent)
+    bbox = PanoSimBoundingBox(location, extent)
 
     return bbox
 
 def parse_state_times(info):
     """Parses a list into a dict containing the state times of the traffic lights"""
     state_times = {
-        carla.TrafficLightState.Green: float(info[3]),
-        carla.TrafficLightState.Yellow: float(info[5]),
-        carla.TrafficLightState.Red: float(info[7]),
+        PanoSimTrafficLightState.Green: float(info[3]),
+        PanoSimTrafficLightState.Yellow: float(info[5]),
+        PanoSimTrafficLightState.Red: float(info[7]),
     }
     return state_times
 
@@ -167,7 +170,7 @@ def parse_vector_list(info):
     """Parses a list of string into a list of Vector2D"""
     vector_list = []
     for i in range(0, len(info), 2):
-        vector = carla.Vector2D(
+        vector = PanoSimVector2D(
             x=float(info[i][1:-1]),
             y=float(info[i+1][:-1]),
         )
@@ -177,7 +180,7 @@ def parse_vector_list(info):
 
 def parse_gears_control(info):
     """Parses a list into a GearPhysicsControl"""
-    gears_control = carla.GearPhysicsControl(
+    gears_control = PanoSimGearPhysicsControl(
         ratio=float(info[3]),
         down_ratio=float(info[5]),
         up_ratio=float(info[7]),
@@ -186,14 +189,14 @@ def parse_gears_control(info):
 
 def parse_wheels_control(info):
     """Parses a list into a WheelsPhysicsControl"""
-    wheels_control = carla.WheelPhysicsControl(
+    wheels_control = PanoSimWheelPhysicsControl(
         tire_friction=float(info[3]),
         damping_rate=float(info[5]),
         max_steer_angle=float(info[7]),
         radius=float(info[9]),
         max_brake_torque=float(info[11]),
         max_handbrake_torque=float(info[13]),
-        position=carla.Vector3D(
+        position=PanoSimVector3D(
             x=float(info[17][1:-1]) / 100,
             y=float(info[17][:-1]) / 100,
             z=float(info[17][:-1]) / 100)
@@ -428,7 +431,7 @@ class MetricsParser(object):
                     frame_state["actors"][actor_id].update({"angular_velocity": angular_v})
 
                     if delta_time == 0:
-                        acceleration = carla.Vector3D(0, 0, 0)
+                        acceleration = PanoSimVector3D(0, 0, 0)
                     else:
                         prev_velocity = frame_state["actors"][actor_id]["velocity"]
                         acceleration = (velocity - prev_velocity) / delta_time
@@ -474,7 +477,7 @@ class MetricsParser(object):
 
                     elements = self.get_row_elements(2, " ")
                     actor_id = int(elements[1])
-                    physics_control = carla.VehiclePhysicsControl()
+                    physics_control = PanoSimVehiclePhysicsControl()
                     self.next_row()
 
                     forward_gears = []
@@ -494,7 +497,7 @@ class MetricsParser(object):
 
                             if name == "center_of_mass":
                                 values = elements[1].split(" ")
-                                value = carla.Vector3D(
+                                value = PanoSimVector3D(
                                     float(values[0][1:-1]),
                                     float(values[1][:-1]),
                                     float(values[2][:-1]),

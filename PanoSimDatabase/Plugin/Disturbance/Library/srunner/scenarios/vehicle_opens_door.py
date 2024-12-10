@@ -13,9 +13,8 @@ priority, e.g. by running a red traffic light.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimVehicleControl, PanoSimVehicleDoor
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest, ScenarioTimeoutTest
 
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
@@ -62,7 +61,7 @@ class VehicleOpensDoorTwoWays(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
 
         self.timeout = timeout
         self._min_trigger_dist = 10
@@ -93,7 +92,7 @@ class VehicleOpensDoorTwoWays(BasicScenario):
         if self._direction == 'right':
             displacement_vector *= -1
 
-        new_location = wp.transform.location + carla.Location(x=displacement*displacement_vector.x,
+        new_location = wp.transform.location + PanoSimLocation(x=displacement*displacement_vector.x,
                                                               y=displacement*displacement_vector.y,
                                                               z=displacement*displacement_vector.z)
         new_location.z += 0.05  # Just in case, avoid collisions with the ground
@@ -133,8 +132,7 @@ class VehicleOpensDoorTwoWays(BasicScenario):
 
         self.parking_slots.append(self._parked_wp.transform.location)
 
-        self._parked_actor = CarlaDataProvider.request_new_actor(
-            "*vehicle.*", self._parked_wp.transform, attribute_filter={'has_dynamic_doors': True, 'base_type': 'car'})
+        self._parked_actor = PanoSimDataProvider.request_new_actor("*vehicle.*", self._parked_wp.transform, attribute_filter={'has_dynamic_doors': True, 'base_type': 'car'})
         if not self._parked_actor:
             raise ValueError("Couldn't spawn the parked vehicle")
         self.other_actors.append(self._parked_actor)
@@ -142,7 +140,7 @@ class VehicleOpensDoorTwoWays(BasicScenario):
         # And move it to the side
         side_location = self._get_displaced_location(self._parked_actor, self._parked_wp)
         self._parked_actor.set_location(side_location)
-        self._parked_actor.apply_control(carla.VehicleControl(hand_brake=True))
+        self._parked_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
 
         self._end_wp = self._move_waypoint_forward(self._front_wp, self._end_distance)
 
@@ -176,7 +174,7 @@ class VehicleOpensDoorTwoWays(BasicScenario):
             self.ego_vehicles[0], collision_location, self._min_trigger_dist))
         behavior.add_child(trigger_adversary)
 
-        door = carla.VehicleDoor.FR if self._direction == 'left' else carla.VehicleDoor.FL
+        door = PanoSimVehicleDoor.FR if self._direction == 'left' else PanoSimVehicleDoor.FL
         behavior.add_child(OpenVehicleDoor(self._parked_actor, door))
         behavior.add_child(StopBackVehicles())
         behavior.add_child(Idle(self._opposite_wait_duration))

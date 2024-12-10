@@ -17,11 +17,9 @@ Limitations:
 from distutils.util import strtobool
 import math
 
-import carla
-
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 from srunner.scenariomanager.actorcontrols.visualizer import Visualizer
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform, PanoSimVector3D, PanoSimTrafficLightState, PanoSimVehicleLightState
 from srunner.scenariomanager.timer import GameTime
 
 
@@ -107,15 +105,14 @@ class SimpleVehicleControl(BasicControl):
 
         if args and 'consider_obstacles' in args and strtobool(args['consider_obstacles']):
             self._consider_obstacles = strtobool(args['consider_obstacles'])
-            bp = CarlaDataProvider.get_world().get_blueprint_library().find('sensor.other.obstacle')
+            bp = PanoSimDataProvider.get_world().get_blueprint_library().find('sensor.other.obstacle')
             bp.set_attribute('distance', '250')
             if args and 'proximity_threshold' in args:
                 self._proximity_threshold = float(args['proximity_threshold'])
                 bp.set_attribute('distance', str(max(float(args['proximity_threshold']), 250)))
             bp.set_attribute('hit_radius', '1')
             bp.set_attribute('only_dynamics', 'True')
-            self._obstacle_sensor = CarlaDataProvider.get_world().spawn_actor(
-                bp, carla.Transform(carla.Location(x=self._actor.bounding_box.extent.x, z=1.0)), attach_to=self._actor)
+            self._obstacle_sensor = PanoSimDataProvider.get_world().spawn_actor(bp, PanoSimTransform(PanoSimLocation(x=self._actor.bounding_box.extent.x, z=1.0)), attach_to=self._actor)
             self._obstacle_sensor.listen(lambda event: self._on_obstacle(event))  # pylint: disable=unnecessary-lambda
 
         if args and 'consider_trafficlights' in args and strtobool(args['consider_trafficlights']):
@@ -174,7 +171,7 @@ class SimpleVehicleControl(BasicControl):
 
         if self._reached_goal:
             # Reached the goal, so stop
-            velocity = carla.Vector3D(0, 0, 0)
+            velocity = PanoSimVector3D(0, 0, 0)
             self._actor.set_target_velocity(velocity)
             return
 
@@ -190,9 +187,9 @@ class SimpleVehicleControl(BasicControl):
 
             map_wp = None
             if not self._generated_waypoint_list:
-                map_wp = CarlaDataProvider.get_map().get_waypoint(CarlaDataProvider.get_location(self._actor))
+                map_wp = PanoSimDataProvider.get_map().get_waypoint(PanoSimDataProvider.get_location(self._actor))
             else:
-                map_wp = CarlaDataProvider.get_map().get_waypoint(self._generated_waypoint_list[-1].location)
+                map_wp = PanoSimDataProvider.get_map().get_waypoint(self._generated_waypoint_list[-1].location)
             while len(self._generated_waypoint_list) < 50:
                 map_wps = map_wp.next(2.0)
                 if map_wps:
@@ -241,7 +238,7 @@ class SimpleVehicleControl(BasicControl):
             offset_location = transform.location
         else:
             right_vector = transform.get_right_vector()
-            offset_location = transform.location + carla.Location(x=self._offset*right_vector.x,
+            offset_location = transform.location + PanoSimLocation(x=self._offset*right_vector.x,
                                                                   y=self._offset*right_vector.y)
 
         return offset_location
@@ -289,15 +286,15 @@ class SimpleVehicleControl(BasicControl):
 
         if self._consider_traffic_lights:
             if (self._actor.is_at_traffic_light() and
-                    self._actor.get_traffic_light_state() == carla.TrafficLightState.Red):
+                    self._actor.get_traffic_light_state() == PanoSimTrafficLightState.Red):
                 target_speed = 0
 
         if target_speed < current_speed:
             if not self._brake_lights_active:
                 self._brake_lights_active = True
                 light_state = self._actor.get_light_state()
-                light_state |= carla.VehicleLightState.Brake
-                self._actor.set_light_state(carla.VehicleLightState(light_state))
+                light_state |= PanoSimVehicleLightState.Brake
+                self._actor.set_light_state(PanoSimVehicleLightState(light_state))
             if self._max_deceleration is not None:
                 target_speed = max(target_speed, current_speed - (current_time -
                                                                   self._last_update) * self._max_deceleration)
@@ -305,8 +302,8 @@ class SimpleVehicleControl(BasicControl):
             if self._brake_lights_active:
                 self._brake_lights_active = False
                 light_state = self._actor.get_light_state()
-                light_state &= ~carla.VehicleLightState.Brake
-                self._actor.set_light_state(carla.VehicleLightState(light_state))
+                light_state &= ~PanoSimVehicleLightState.Brake
+                self._actor.set_light_state(PanoSimVehicleLightState(light_state))
             if self._max_acceleration is not None:
                 tmp_speed = min(target_speed, current_speed + (current_time -
                                                                self._last_update) * self._max_acceleration)
@@ -315,8 +312,8 @@ class SimpleVehicleControl(BasicControl):
                 target_speed = max(tmp_speed, min(0.5, target_speed))
 
         # set new linear velocity
-        velocity = carla.Vector3D(0, 0, 0)
-        direction = next_location - CarlaDataProvider.get_location(self._actor)
+        velocity = PanoSimVector3D(0, 0, 0)
+        direction = next_location - PanoSimDataProvider.get_location(self._actor)
         direction_norm = math.sqrt(direction.x**2 + direction.y**2)
         velocity.x = direction.x / direction_norm * target_speed
         velocity.y = direction.y / direction_norm * target_speed
@@ -324,13 +321,13 @@ class SimpleVehicleControl(BasicControl):
         self._actor.set_target_velocity(velocity)
 
         # set new angular velocity
-        current_yaw = CarlaDataProvider.get_transform(self._actor).rotation.yaw
+        current_yaw = PanoSimDataProvider.get_transform(self._actor).rotation.yaw
         # When we have a waypoint list, use the direction between the waypoints to calculate the heading (change)
         # otherwise use the waypoint heading directly
         if self._waypoints:
             delta_yaw = math.degrees(math.atan2(direction.y, direction.x)) - current_yaw
         else:
-            new_yaw = CarlaDataProvider.get_map().get_waypoint(next_location).transform.rotation.yaw
+            new_yaw = PanoSimDataProvider.get_map().get_waypoint(next_location).transform.rotation.yaw
             delta_yaw = new_yaw - current_yaw
 
         if math.fabs(delta_yaw) > 360:
@@ -341,7 +338,7 @@ class SimpleVehicleControl(BasicControl):
         elif delta_yaw < -180:
             delta_yaw = delta_yaw + 360
 
-        angular_velocity = carla.Vector3D(0, 0, 0)
+        angular_velocity = PanoSimVector3D(0, 0, 0)
         if target_speed == 0:
             angular_velocity.z = 0
         else:

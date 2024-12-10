@@ -12,9 +12,7 @@ import math
 import numpy as np
 import networkx as nx
 
-import carla
-from agents.navigation.local_planner import RoadOption
-from agents.tools.misc import vector
+from srunner.scenariomanager.data_provider import PanoSimLaneChange, PanoSimRotation, PanoSimLaneType, PanoSim_vector
 
 class GlobalRoutePlanner(object):
     """
@@ -30,7 +28,7 @@ class GlobalRoutePlanner(object):
         self._road_id_to_edge = None
 
         self._intersection_end_node = -1
-        self._previous_decision = RoadOption.VOID
+        self._previous_decision = PanoSimRotation.VOID
 
         # Build the graph
         self._build_topology()
@@ -53,7 +51,7 @@ class GlobalRoutePlanner(object):
             edge = self._graph.edges[route[i], route[i+1]]
             path = []
 
-            if edge['type'] != RoadOption.LANEFOLLOW and edge['type'] != RoadOption.VOID:
+            if edge['type'] != PanoSimRotation.LANEFOLLOW and edge['type'] != PanoSimRotation.VOID:
                 route_trace.append((current_waypoint, road_option))
                 exit_wp = edge['exit_waypoint']
                 n1, n2 = self._road_id_to_edge[exit_wp.road_id][exit_wp.section_id][exit_wp.lane_id]
@@ -167,8 +165,8 @@ class GlobalRoutePlanner(object):
                     [entry_carla_vector.x, entry_carla_vector.y, entry_carla_vector.z]),
                 exit_vector=np.array(
                     [exit_carla_vector.x, exit_carla_vector.y, exit_carla_vector.z]),
-                net_vector=vector(entry_wp.transform.location, exit_wp.transform.location),
-                intersection=intersection, type=RoadOption.LANEFOLLOW)
+                net_vector=PanoSim_vector(entry_wp.transform.location, exit_wp.transform.location),
+                intersection=intersection, type=PanoSimRotation.LANEFOLLOW)
 
     def _find_loose_ends(self):
         """
@@ -212,7 +210,7 @@ class GlobalRoutePlanner(object):
                         length=len(path) + 1, path=path,
                         entry_waypoint=end_wp, exit_waypoint=path[-1],
                         entry_vector=None, exit_vector=None, net_vector=None,
-                        intersection=end_wp.is_junction, type=RoadOption.LANEFOLLOW)
+                        intersection=end_wp.is_junction, type=PanoSimRotation.LANEFOLLOW)
 
     def _lane_change_link(self):
         """
@@ -227,12 +225,12 @@ class GlobalRoutePlanner(object):
                 if not segment['entry'].is_junction:
                     next_waypoint, next_road_option, next_segment = None, None, None
 
-                    if waypoint.right_lane_marking.lane_change & carla.LaneChange.Right and not right_found:
+                    if waypoint.right_lane_marking.lane_change & PanoSimLaneChange.Right and not right_found:
                         next_waypoint = waypoint.get_right_lane()
                         if next_waypoint is not None \
-                                and next_waypoint.lane_type == carla.LaneType.Driving \
+                                and next_waypoint.lane_type == PanoSimLaneType.Driving \
                                 and waypoint.road_id == next_waypoint.road_id:
-                            next_road_option = RoadOption.CHANGELANERIGHT
+                            next_road_option = PanoSimRotation.CHANGELANERIGHT
                             next_segment = self._localize(next_waypoint.transform.location)
                             if next_segment is not None:
                                 self._graph.add_edge(
@@ -240,12 +238,12 @@ class GlobalRoutePlanner(object):
                                     exit_waypoint=next_waypoint, intersection=False, exit_vector=None,
                                     path=[], length=0, type=next_road_option, change_waypoint=next_waypoint)
                                 right_found = True
-                    if waypoint.left_lane_marking.lane_change & carla.LaneChange.Left and not left_found:
+                    if waypoint.left_lane_marking.lane_change & PanoSimLaneChange.Left and not left_found:
                         next_waypoint = waypoint.get_left_lane()
                         if next_waypoint is not None \
-                                and next_waypoint.lane_type == carla.LaneType.Driving \
+                                and next_waypoint.lane_type == PanoSimLaneType.Driving \
                                 and waypoint.road_id == next_waypoint.road_id:
-                            next_road_option = RoadOption.CHANGELANELEFT
+                            next_road_option = PanoSimRotation.CHANGELANELEFT
                             next_segment = self._localize(next_waypoint.transform.location)
                             if next_segment is not None:
                                 self._graph.add_edge(
@@ -309,7 +307,7 @@ class GlobalRoutePlanner(object):
             candidate_edge = self._graph.edges[node1, node2]
             if node1 == route[index]:
                 last_intersection_edge = candidate_edge
-            if candidate_edge['type'] == RoadOption.LANEFOLLOW and candidate_edge['intersection']:
+            if candidate_edge['type'] == PanoSimRotation.LANEFOLLOW and candidate_edge['intersection']:
                 last_intersection_edge = candidate_edge
                 last_node = node2
             else:
@@ -329,17 +327,17 @@ class GlobalRoutePlanner(object):
         next_node = route[index+1]
         next_edge = self._graph.edges[current_node, next_node]
         if index > 0:
-            if self._previous_decision != RoadOption.VOID \
+            if self._previous_decision != PanoSimRotation.VOID \
                     and self._intersection_end_node > 0 \
                     and self._intersection_end_node != previous_node \
-                    and next_edge['type'] == RoadOption.LANEFOLLOW \
+                    and next_edge['type'] == PanoSimRotation.LANEFOLLOW \
                     and next_edge['intersection']:
                 decision = self._previous_decision
             else:
                 self._intersection_end_node = -1
                 current_edge = self._graph.edges[previous_node, current_node]
-                calculate_turn = current_edge['type'] == RoadOption.LANEFOLLOW and not current_edge[
-                    'intersection'] and next_edge['type'] == RoadOption.LANEFOLLOW and next_edge['intersection']
+                calculate_turn = current_edge['type'] == PanoSimRotation.LANEFOLLOW and not current_edge[
+                    'intersection'] and next_edge['type'] == PanoSimRotation.LANEFOLLOW and next_edge['intersection']
                 if calculate_turn:
                     last_node, tail_edge = self._successive_last_intersection_edge(index, route)
                     self._intersection_end_node = last_node
@@ -351,7 +349,7 @@ class GlobalRoutePlanner(object):
                     cross_list = []
                     for neighbor in self._graph.successors(current_node):
                         select_edge = self._graph.edges[current_node, neighbor]
-                        if select_edge['type'] == RoadOption.LANEFOLLOW:
+                        if select_edge['type'] == PanoSimRotation.LANEFOLLOW:
                             if neighbor != route[index+1]:
                                 sv = select_edge['net_vector']
                                 cross_list.append(np.cross(cv, sv)[2])
@@ -361,15 +359,15 @@ class GlobalRoutePlanner(object):
                     if not cross_list:
                         cross_list.append(0)
                     if deviation < threshold:
-                        decision = RoadOption.STRAIGHT
+                        decision = PanoSimRotation.STRAIGHT
                     elif cross_list and next_cross < min(cross_list):
-                        decision = RoadOption.LEFT
+                        decision = PanoSimRotation.LEFT
                     elif cross_list and next_cross > max(cross_list):
-                        decision = RoadOption.RIGHT
+                        decision = PanoSimRotation.RIGHT
                     elif next_cross < 0:
-                        decision = RoadOption.LEFT
+                        decision = PanoSimRotation.LEFT
                     elif next_cross > 0:
-                        decision = RoadOption.RIGHT
+                        decision = PanoSimRotation.RIGHT
                 else:
                     decision = next_edge['type']
 

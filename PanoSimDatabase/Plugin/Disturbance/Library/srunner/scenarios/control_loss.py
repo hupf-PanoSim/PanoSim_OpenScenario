@@ -16,9 +16,7 @@ from numpy import random
 import py_trees
 import operator
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import AddNoiseToRouteEgo
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import DriveDistance, InTriggerDistanceToLocation
@@ -41,9 +39,9 @@ class ControlLoss(BasicScenario):
         """
         self.timeout = timeout
         self._randomize = randomize
-        self._rng = CarlaDataProvider.get_random_seed()
+        self._rng = PanoSimDataProvider.get_random_seed()
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._end_distance = 110
 
         # Friction loss tends to have a much stronger steering compoenent then a throttle one
@@ -72,26 +70,26 @@ class ControlLoss(BasicScenario):
 
         # Get the debris locations
         first_wp, _ = get_waypoint_in_distance(self._reference_waypoint, self._distance[0])
-        first_ground_loc = self.world.ground_projection(first_wp.transform.location + carla.Location(z=1), 2)
+        first_ground_loc = self.world.ground_projection(first_wp.transform.location + PanoSimLocation(z=1), 2)
         first_loc = first_ground_loc.location if first_ground_loc else first_wp.transform.location
-        self.first_transform = carla.Transform(first_loc, first_wp.transform.rotation)
+        self.first_transform = PanoSimTransform(first_loc, first_wp.transform.rotation)
 
         second_wp, _ = get_waypoint_in_distance(self._reference_waypoint, self._distance[1])
-        second_ground_loc = self.world.ground_projection(second_wp.transform.location + carla.Location(z=1), 2)
+        second_ground_loc = self.world.ground_projection(second_wp.transform.location + PanoSimLocation(z=1), 2)
         second_loc = second_ground_loc.location if second_ground_loc else second_wp.transform.location
-        self.second_transform = carla.Transform(second_loc, second_wp.transform.rotation)
+        self.second_transform = PanoSimTransform(second_loc, second_wp.transform.rotation)
 
         third_wp, _ = get_waypoint_in_distance(self._reference_waypoint, self._distance[2])
-        third_ground_loc = self.world.ground_projection(third_wp.transform.location + carla.Location(z=1), 2)
+        third_ground_loc = self.world.ground_projection(third_wp.transform.location + PanoSimLocation(z=1), 2)
         third_loc = third_ground_loc.location if third_ground_loc else third_wp.transform.location
-        self.third_transform = carla.Transform(third_loc, third_wp.transform.rotation)
+        self.third_transform = PanoSimTransform(third_loc, third_wp.transform.rotation)
 
         # Spawn the debris
-        first_debris = CarlaDataProvider.request_new_actor(
+        first_debris = PanoSimDataProvider.request_new_actor(
             'static.prop.dirtdebris01', self.first_transform, rolename='prop')
-        second_debris = CarlaDataProvider.request_new_actor(
+        second_debris = PanoSimDataProvider.request_new_actor(
             'static.prop.dirtdebris01', self.second_transform, rolename='prop')
-        third_debris = CarlaDataProvider.request_new_actor(
+        third_debris = PanoSimDataProvider.request_new_actor(
             'static.prop.dirtdebris01', self.third_transform, rolename='prop')
 
         # Remove their physics

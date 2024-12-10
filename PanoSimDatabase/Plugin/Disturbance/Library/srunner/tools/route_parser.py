@@ -11,8 +11,7 @@ import json
 import math
 import xml.etree.ElementTree as ET
 
-import carla
-from agents.navigation.local_planner import RoadOption
+from srunner.scenariomanager.data_provider import PanoSimTransform, PanoSimRotation, PanoSimLocation, PanoSimWeather
 from srunner.scenarioconfigs.route_scenario_configuration import RouteScenarioConfiguration
 from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration, ActorConfigurationData
 
@@ -23,13 +22,13 @@ ANGLE_THRESHOLD = 10
 
 def convert_elem_to_transform(elem):
     """Convert an ElementTree.Element to a CARLA transform"""
-    return carla.Transform(
-        carla.Location(
+    return PanoSimTransform(
+        PanoSimLocation(
             float(elem.attrib.get('x')),
             float(elem.attrib.get('y')),
             float(elem.attrib.get('z'))
         ),
-        carla.Rotation(
+        PanoSimRotation(
             roll=0.0,
             pitch=0.0,
             yaw=float(elem.attrib.get('yaw'))
@@ -68,7 +67,7 @@ class RouteParser(object):
             # The list of carla.Location that serve as keypoints on this route
             positions = []
             for position in route.find('waypoints').iter('position'):
-                positions.append(carla.Location(x=float(position.attrib['x']),
+                positions.append(PanoSimLocation(x=float(position.attrib['x']),
                                                 y=float(position.attrib['y']),
                                                 z=float(position.attrib['z'])))
             route_config.keypoints = positions
@@ -105,12 +104,12 @@ class RouteParser(object):
 
         weathers_elem = route.find("weathers")
         if weathers_elem is None:
-            return [[0, carla.WeatherParameters(sun_altitude_angle=70, cloudiness=50)]]
+            return [[0, PanoSimWeather(sun_altitude_angle=70, cloudiness=50)]]
 
         for weather_elem in weathers_elem.iter('weather'):
             route_percentage = float(weather_elem.attrib['route_percentage'])
 
-            weather = carla.WeatherParameters(sun_altitude_angle=70, cloudiness=50)  # Base weather
+            weather = PanoSimWeather(sun_altitude_angle=70, cloudiness=50)  # Base weather
             for weather_attrib in weather_elem.attrib:
                 if hasattr(weather, weather_attrib):
                     setattr(weather, weather_attrib, float(weather_elem.attrib[weather_attrib]))

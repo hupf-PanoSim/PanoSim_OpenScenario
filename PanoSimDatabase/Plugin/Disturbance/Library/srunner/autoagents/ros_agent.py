@@ -19,7 +19,7 @@ import time
 
 import numpy
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl
 
 import rospy
 from cv_bridge import CvBridge
@@ -111,7 +111,7 @@ class RosAgent(AutonomousAgent):
         self.vehicle_control_subscriber = rospy.Subscriber(
             '/carla/ego_vehicle/vehicle_control_cmd', CarlaEgoVehicleControl, self.on_vehicle_control)
 
-        self.current_control = carla.VehicleControl()
+        self.current_control = PanoSimVehicleControl()
 
         self.waypoint_publisher = rospy.Publisher(
             '/carla/ego_vehicle/waypoints', Path, queue_size=1, latch=True)
@@ -184,7 +184,7 @@ class RosAgent(AutonomousAgent):
         """
         callback if a new vehicle control command is received
         """
-        cmd = carla.VehicleControl()
+        cmd = PanoSimVehicleControl()
         cmd.throttle = data.throttle
         cmd.steer = data.steer
         cmd.brake = data.brake

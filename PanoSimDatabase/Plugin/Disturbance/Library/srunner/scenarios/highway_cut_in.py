@@ -13,9 +13,8 @@ priority, e.g. by running a red traffic light.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       ActorTransformSetter,
                                                                       SyncArrivalWithAgent,
@@ -31,7 +30,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -52,7 +51,7 @@ class HighwayCutIn(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._same_lane_time = 0.3
@@ -78,14 +77,14 @@ class HighwayCutIn(BasicScenario):
         self._other_waypoint = self._map.get_waypoint(self._start_location)
         self._other_transform = self._other_waypoint.transform
 
-        self._cut_in_vehicle = CarlaDataProvider.request_new_actor(
+        self._cut_in_vehicle = PanoSimDataProvider.request_new_actor(
             'vehicle.*', self._other_transform, rolename='scenario',
             attribute_filter={'base_type': 'car', 'has_lights': True}
         )
         self.other_actors.append(self._cut_in_vehicle)
 
         # Move below ground
-        self._cut_in_vehicle.set_location(self._other_transform.location - carla.Location(z=100))
+        self._cut_in_vehicle.set_location(self._other_transform.location - PanoSimLocation(z=100))
         self._cut_in_vehicle.set_simulate_physics(False)
 
 

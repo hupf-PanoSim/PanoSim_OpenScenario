@@ -13,10 +13,10 @@ It also contains functions to convert the CARLA world location do GPS coordinate
 import math
 import xml.etree.ElementTree as ET
 
-from agents.navigation.global_route_planner import GlobalRoutePlanner
-from agents.navigation.local_planner import RoadOption
+# masked by hupf, for run success
+# from agents.navigation.global_route_planner import GlobalRoutePlanner
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimRoadOption
 
 
 def _location_to_gps(lat_ref, lon_ref, location):
@@ -100,12 +100,12 @@ def downsample_route(route, sample_factor):
         curr_option = point[1]
 
         # Lane changing
-        if curr_option in (RoadOption.CHANGELANELEFT, RoadOption.CHANGELANERIGHT):
+        if curr_option in (PanoSimRoadOption.CHANGELANELEFT, PanoSimRoadOption.CHANGELANERIGHT):
             ids_to_sample.append(i)
             dist = 0
 
         # When road option changes
-        elif prev_option != curr_option and prev_option not in (RoadOption.CHANGELANELEFT, RoadOption.CHANGELANERIGHT):
+        elif prev_option != curr_option and prev_option not in (PanoSimRoadOption.CHANGELANELEFT, PanoSimRoadOption.CHANGELANERIGHT):
             ids_to_sample.append(i)
             dist = 0
 
@@ -134,15 +134,15 @@ def interpolate_trajectory(waypoints_trajectory, hop_resolution=1.0):
     """
     Given some raw keypoints interpolate a full dense trajectory to be used by the user.
     returns the full interpolated route both in GPS coordinates and also in its original form.
-    
+
     Args:
         - waypoints_trajectory: the current coarse trajectory
         - hop_resolution: distance between the trajectory's waypoints
     """
 
-    grp = GlobalRoutePlanner(CarlaDataProvider.get_map(), hop_resolution)
+    grp = GlobalRoutePlanner(PanoSimDataProvider.get_map(), hop_resolution)
     # Obtain route plan
-    lat_ref, lon_ref = _get_latlon_ref(CarlaDataProvider.get_world())
+    lat_ref, lon_ref = _get_latlon_ref(PanoSimDataProvider.get_world())
 
     route = []
     gps_route = []
@@ -151,10 +151,11 @@ def interpolate_trajectory(waypoints_trajectory, hop_resolution=1.0):
 
         waypoint = waypoints_trajectory[i]
         waypoint_next = waypoints_trajectory[i + 1]
-        interpolated_trace = grp.trace_route(waypoint, waypoint_next)
-        for wp, connection in interpolated_trace:
-            route.append((wp.transform, connection))
-            gps_coord = _location_to_gps(lat_ref, lon_ref, wp.transform.location)
-            gps_route.append((gps_coord, connection))
+        # masked by hupf, for run success
+        # interpolated_trace = grp.trace_route(waypoint, waypoint_next)
+        # for wp, connection in interpolated_trace:
+        #     route.append((wp.transform, connection))
+        #     gps_coord = _location_to_gps(lat_ref, lon_ref, wp.transform.location)
+        #     gps_route.append((gps_coord, connection))
 
     return gps_route, route

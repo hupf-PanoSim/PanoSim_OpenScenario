@@ -17,9 +17,10 @@ A user must not modify this module.
 import importlib
 import os
 import sys
+# import pdb
+from TrafficModelInterface import *
 
-import carla
-
+from srunner.scenariomanager.data_provider import PanoSimVehicle, PanoSimWalker
 from srunner.scenariomanager.actorcontrols.external_control import ExternalControl
 from srunner.scenariomanager.actorcontrols.npc_vehicle_control import NpcVehicleControl
 from srunner.scenariomanager.actorcontrols.pedestrian_control import PedestrianControl
@@ -66,9 +67,9 @@ class ActorControl(object):
 
         # use importlib to import the control module
         if not control_py_module:
-            if isinstance(actor, carla.Walker):
+            if isinstance(actor, PanoSimWalker):
                 self.control_instance = PedestrianControl(actor)
-            elif isinstance(actor, carla.Vehicle):
+            elif isinstance(actor, PanoSimVehicle):
                 self.control_instance = NpcVehicleControl(actor)
             else:
                 # use ExternalControl for all misc objects to handle all actors the same way
@@ -103,6 +104,14 @@ class ActorControl(object):
             start_time (float): Start time of the new "maneuver" [s].
         """
         self.control_instance.update_target_speed(target_speed)
+        id = self.control_instance._actor.id
+        if target_speed < 0.01:
+            if not isStopped(id):
+                stopVehicle(id, 20)
+        else:
+            if isStopped(id):
+                cancelStopVehicle(id)
+            changeSpeed(id, target_speed, 0.1)
         if start_time:
             self._last_longitudinal_command = start_time
 

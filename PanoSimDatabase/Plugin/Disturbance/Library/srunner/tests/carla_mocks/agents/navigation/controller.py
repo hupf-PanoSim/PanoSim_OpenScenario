@@ -8,7 +8,7 @@
 from collections import deque
 import math
 import numpy as np
-import carla
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl, PanoSimLocation
 from agents.tools.misc import get_speed
 
 
@@ -64,7 +64,7 @@ class VehiclePIDController():
 
         acceleration = self._lon_controller.run_step(target_speed)
         current_steering = self._lat_controller.run_step(waypoint)
-        control = carla.VehicleControl()
+        control = PanoSimVehicleControl()
         if acceleration >= 0.0:
             control.throttle = min(acceleration, self.max_throt)
             control.brake = 0.0
@@ -222,7 +222,7 @@ class PIDLateralController():
             # Displace the wp to the side
             w_tran = waypoint.transform
             r_vec = w_tran.get_right_vector()
-            w_loc = w_tran.location + carla.Location(x=self._offset*r_vec.x,
+            w_loc = w_tran.location + PanoSimLocation(x=self._offset*r_vec.x,
                                                          y=self._offset*r_vec.y)
         else:
             w_loc = waypoint.transform.location

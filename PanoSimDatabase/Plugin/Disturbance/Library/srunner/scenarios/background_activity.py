@@ -11,11 +11,8 @@ Scenario spawning elements to make the town dynamic and interesting
 from collections import OrderedDict
 import py_trees
 
-import carla
-
-from agents.navigation.local_planner import RoadOption
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimColor, PanoSimLocation, PanoSimTransform, PanoSimVector3D, PanoSimLaneType
+from srunner.scenariomanager.data_provider import PanoSimVehicleLightState, PanoSimRoadOption
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import AtomicBehavior
 from srunner.tools.scenario_helper import get_same_dir_lanes, get_opposite_dir_lanes
 
@@ -60,12 +57,12 @@ DEBUG_MEDIUM = 'medium'
 DEBUG_LARGE = 'large'
 
 DEBUG_COLORS = {
-    DEBUG_ROAD: carla.Color(0, 0, 255),      # Blue
-    DEBUG_OPPOSITE: carla.Color(255, 0, 0),  # Red
-    DEBUG_JUNCTION: carla.Color(0, 0, 0),    # Black
-    DEBUG_ENTRY: carla.Color(255, 255, 0),   # Yellow
-    DEBUG_EXIT: carla.Color(0, 255, 255),    # Teal
-    DEBUG_CONNECT: carla.Color(0, 255, 0),   # Green
+    DEBUG_ROAD: PanoSimColor(0, 0, 255),      # Blue
+    DEBUG_OPPOSITE: PanoSimColor(255, 0, 0),  # Red
+    DEBUG_JUNCTION: PanoSimColor(0, 0, 0),    # Black
+    DEBUG_ENTRY: PanoSimColor(255, 255, 0),   # Yellow
+    DEBUG_EXIT: PanoSimColor(0, 255, 255),    # Teal
+    DEBUG_CONNECT: PanoSimColor(0, 255, 0),   # Green
 }
 
 DEBUG_TYPE = {
@@ -77,7 +74,7 @@ DEBUG_TYPE = {
 def draw_string(world, location, string='', debug_type=DEBUG_ROAD, persistent=False):
     """Utility function to draw debugging strings"""
     v_shift, _ = DEBUG_TYPE.get(DEBUG_SMALL)
-    l_shift = carla.Location(z=v_shift)
+    l_shift = PanoSimLocation(z=v_shift)
     color = DEBUG_COLORS.get(debug_type, DEBUG_ROAD)
     life_time = 0.06 if not persistent else 100000
     world.debug.draw_string(location + l_shift, string, False, color, life_time)
@@ -85,7 +82,7 @@ def draw_string(world, location, string='', debug_type=DEBUG_ROAD, persistent=Fa
 def draw_point(world, location, point_type=DEBUG_SMALL, debug_type=DEBUG_ROAD, persistent=False):
     """Utility function to draw debugging points"""
     v_shift, size = DEBUG_TYPE.get(point_type, DEBUG_SMALL)
-    l_shift = carla.Location(z=v_shift)
+    l_shift = PanoSimLocation(z=v_shift)
     color = DEBUG_COLORS.get(debug_type, DEBUG_ROAD)
     life_time = 0.06 if not persistent else 100000
     world.debug.draw_point(location + l_shift, size, color, life_time)
@@ -95,7 +92,7 @@ def draw_arrow(world, location1, location2, arrow_type=DEBUG_SMALL, debug_type=D
     if location1 == location2:
         draw_point(world, location1, arrow_type, debug_type, persistent)
     v_shift, thickness = DEBUG_TYPE.get(arrow_type, DEBUG_SMALL)
-    l_shift = carla.Location(z=v_shift)
+    l_shift = PanoSimLocation(z=v_shift)
     color = DEBUG_COLORS.get(debug_type, DEBUG_ROAD)
     life_time = 0.06 if not persistent else 100000
     world.debug.draw_arrow(location1 + l_shift, location2 + l_shift, thickness, thickness, color, life_time)
@@ -145,7 +142,7 @@ class Junction(object):
         self.exit_dict = OrderedDict()
         self.actor_dict = OrderedDict()
 
-        # Junction scenario variables 
+        # Junction scenario variables
         self.stop_non_route_entries = False
         self.clear_middle = False
         self.inactive_entry_keys = []
@@ -173,12 +170,12 @@ class BackgroundBehavior(AtomicBehavior):
         """
         super(BackgroundBehavior, self).__init__(name)
         self.debug = debug
-        self._map = CarlaDataProvider.get_map()
-        self._world = CarlaDataProvider.get_world()
-        self._tm_port = CarlaDataProvider.get_traffic_manager_port()
-        self._tm = CarlaDataProvider.get_client().get_trafficmanager(self._tm_port)
+        self._map = PanoSimDataProvider.get_map()
+        self._world = PanoSimDataProvider.get_world()
+        self._tm_port = PanoSimDataProvider.get_traffic_manager_port()
+        self._tm = PanoSimDataProvider.get_client().get_trafficmanager(self._tm_port)
         self._tm.global_percentage_speed_difference(0.0)
-        self._rng = CarlaDataProvider.get_random_seed()
+        self._rng = PanoSimDataProvider.get_random_seed()
 
         self._attribute_filter = {'base_type': 'car', 'special_type': '', 'has_lights': True, }
 
@@ -350,7 +347,7 @@ class BackgroundBehavior(AtomicBehavior):
 
     def _check_background_actors(self):
         """Checks if the Traffic Manager has removed a backgroudn actor"""
-        alive_ids = [actor.id for actor in CarlaDataProvider.get_all_actors().filter('vehicle*')]
+        alive_ids = [actor.id for actor in PanoSimDataProvider.get_all_actors().filter('vehicle*')]
         for actor in list(self._all_actors):
             if actor.id not in alive_ids:
                 self._remove_actor_info(actor)
@@ -432,7 +429,7 @@ class BackgroundBehavior(AtomicBehavior):
             used_exits = []
 
             # Search for intersecting maneuvers
-            for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+            for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
                 entry_key = get_lane_key(self._get_junction_entry_wp(entry_wp))
                 exit_key = get_lane_key(self._get_junction_exit_wp(exit_wp))
 
@@ -457,7 +454,7 @@ class BackgroundBehavior(AtomicBehavior):
             found_highway = False
             used_entry_roads = {}
             used_exit_roads = {}
-            for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+            for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
                 entry_road_key = get_road_key(self._get_junction_entry_wp(entry_wp))
                 exit_road_key = get_road_key(self._get_junction_exit_wp(exit_wp))
 
@@ -581,7 +578,7 @@ class BackgroundBehavior(AtomicBehavior):
         """Gets a list of entry-exit lanes of the fake junctions"""
         for fake_junctions_data in fake_data:
             for junction in fake_junctions_data.junctions:
-                for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+                for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
                     while self._is_junction(entry_wp):
                         entry_wps = entry_wp.previous(0.5)
                         if len(entry_wps) == 0:
@@ -663,7 +660,7 @@ class BackgroundBehavior(AtomicBehavior):
             if self.debug:
                 print(' --------------------- ')
             for junction in junction_data.junctions:
-                for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+                for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
 
                     entry_wp = self._get_junction_entry_wp(entry_wp)
                     if not entry_wp:
@@ -896,7 +893,7 @@ class BackgroundBehavior(AtomicBehavior):
 
         # Handle the actors
         for actor in list(actor_dict):
-            location = CarlaDataProvider.get_location(actor)
+            location = PanoSimDataProvider.get_location(actor)
             if not location or self._is_location_behind_ego(location):
                 self._destroy_actor(actor)
                 continue
@@ -1003,7 +1000,7 @@ class BackgroundBehavior(AtomicBehavior):
             if actor in source.actors:
                 continue  # Don't use actors already part of the source
 
-            actor_location = CarlaDataProvider.get_location(actor)
+            actor_location = PanoSimDataProvider.get_location(actor)
             if actor_location is None:
                 continue  # No idea where the actor is, ignore it
             if source_location.distance(actor_location) > self._reuse_dist:
@@ -1031,12 +1028,11 @@ class BackgroundBehavior(AtomicBehavior):
             for lane_key in self._road_dict:
                 source = self._road_dict[lane_key]
 
-                # If no actors are found, let the last_location be ego's location 
-                # to keep moving the source waypoint forward
+                # If no actors are found, let the last_location be ego's location to keep moving the source waypoint forward
                 if len(source.actors) == 0:
                     last_location = self._ego_wp.transform.location
                 else:
-                    last_location = CarlaDataProvider.get_location(source.actors[-1])
+                    last_location = PanoSimDataProvider.get_location(source.actors[-1])
 
                 if last_location is None:
                     continue
@@ -1076,7 +1072,7 @@ class BackgroundBehavior(AtomicBehavior):
             # Ensure not too many actors are in front of the ego
             front_veh = 0
             for actor in source.actors:
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if location and not self._is_location_behind_ego(location):
                     front_veh += 1
             if front_veh > self._road_front_vehicles:
@@ -1092,7 +1088,7 @@ class BackgroundBehavior(AtomicBehavior):
             if len(source.actors) == 0:
                 location = self._ego_wp.transform.location
             else:
-                location = CarlaDataProvider.get_location(source.actors[-1])
+                location = PanoSimDataProvider.get_location(source.actors[-1])
                 if not location:
                     continue
 
@@ -1160,7 +1156,7 @@ class BackgroundBehavior(AtomicBehavior):
         All opposite lanes have actor sources that will continually create vehicles,
         creating the sensation of permanent traffic. The actor spawning will be done later on
         (_update_opposite_sources). These sources are at a (somewhat) fixed distance
-        from the ego, but they never entering junctions. 
+        from the ego, but they never entering junctions.
         """
         self._opposite_route_index = None
         if not self._junctions:
@@ -1318,9 +1314,9 @@ class BackgroundBehavior(AtomicBehavior):
 
                 # Calculate distance to the last created actor
                 if len(source.actors) == 0:
-                    actor_location = CarlaDataProvider.get_location(self._ego_actor)
+                    actor_location = PanoSimDataProvider.get_location(self._ego_actor)
                 else:
-                    actor_location = CarlaDataProvider.get_location(source.actors[-1])
+                    actor_location = PanoSimDataProvider.get_location(source.actors[-1])
 
                 if not actor_location:
                     continue
@@ -1419,7 +1415,7 @@ class BackgroundBehavior(AtomicBehavior):
 
                     next_wp = source_wp
                     spawn_wps = []
-                    spawn_dist = self._road_front_vehicles + CarlaDataProvider.get_velocity(self._ego_actor)
+                    spawn_dist = self._road_front_vehicles + PanoSimDataProvider.get_velocity(self._ego_actor)
                     for _ in range(self._road_front_vehicles):
                         next_wps = next_wp.next(spawn_dist)
                         if len(next_wps) != 1 or self._is_junction(next_wps[0]):
@@ -1455,10 +1451,10 @@ class BackgroundBehavior(AtomicBehavior):
                 right_wp = old_wp.get_right_lane()
                 left_wp = old_wp.get_left_lane()
                 side_road_wp = None
-                if right_wp and right_wp.lane_type == carla.LaneType.Driving:
+                if right_wp and right_wp.lane_type == PanoSimLaneType.Driving:
                     side_road_wp = get_road_wp(right_wp)
                     side_path = [right_wp.transform.location]
-                elif left_wp and left_wp.lane_type == carla.LaneType.Driving:
+                elif left_wp and left_wp.lane_type == PanoSimLaneType.Driving:
                     side_road_wp = get_road_wp(left_wp)
                     side_path = [left_wp.transform.location]
 
@@ -1477,7 +1473,7 @@ class BackgroundBehavior(AtomicBehavior):
                 actors_with_dist = []
                 ego_location = self._ego_wp.transform.location
                 for actor in lane_actors + side_lane_actors:
-                    actor_location = CarlaDataProvider.get_location(actor)
+                    actor_location = PanoSimDataProvider.get_location(actor)
                     if not actor_location:
                         self._destroy_actor(actor)
                         continue
@@ -1577,7 +1573,7 @@ class BackgroundBehavior(AtomicBehavior):
 
     def _update_opposite_sources(self):
         """Checks the opposite actor sources to see if new actors have to be created"""
-        ego_speed = CarlaDataProvider.get_velocity(self._ego_actor)
+        ego_speed = PanoSimDataProvider.get_velocity(self._ego_actor)
         for source in self._opposite_sources:
             if not source.active:
                 continue
@@ -1591,7 +1587,7 @@ class BackgroundBehavior(AtomicBehavior):
             if len(source.actors) == 0:
                 distance = self._opposite_sources_dist + 1
             else:
-                actor_location = CarlaDataProvider.get_location(source.actors[-1])
+                actor_location = PanoSimDataProvider.get_location(source.actors[-1])
                 if not actor_location:
                     continue
                 distance = source.wp.transform.location.distance(actor_location)
@@ -1732,7 +1728,7 @@ class BackgroundBehavior(AtomicBehavior):
 
     def _compute_parameters(self):
         """Computes the parameters that are dependent on the speed of the ego. """
-        ego_speed = CarlaDataProvider.get_velocity(self._ego_actor)
+        ego_speed = PanoSimDataProvider.get_velocity(self._ego_actor)
         self._min_radius = self._base_min_radius + self._radius_increase_ratio * ego_speed + self._road_extra_space
         self._max_radius = self._base_max_radius + self._radius_increase_ratio * ego_speed + self._road_extra_space
         self._detection_dist = self._base_junction_detection + self._detection_ratio * ego_speed
@@ -1743,14 +1739,14 @@ class BackgroundBehavior(AtomicBehavior):
         """
         for lane in self._road_dict:
             for actor in self._road_dict[lane].actors:
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if location and not self._is_location_behind_ego(location):
                     self._scenario_stopped_actors.append(actor)
                     self._actors_speed_perc[actor] = 0
                     self._tm.update_vehicle_lights(actor, False)
                     lights = actor.get_light_state()
-                    lights |= carla.VehicleLightState.Brake
-                    actor.set_light_state(carla.VehicleLightState(lights))
+                    lights |= PanoSimVehicleLightState.Brake
+                    actor.set_light_state(PanoSimVehicleLightState(lights))
 
     def _start_road_front_vehicles(self):
         """
@@ -1760,8 +1756,8 @@ class BackgroundBehavior(AtomicBehavior):
             self._actors_speed_perc[actor] = 100
             self._tm.update_vehicle_lights(actor, True)
             lights = actor.get_light_state()
-            lights &= ~carla.VehicleLightState.Brake
-            actor.set_light_state(carla.VehicleLightState(lights))
+            lights &= ~PanoSimVehicleLightState.Brake
+            actor.set_light_state(PanoSimVehicleLightState(lights))
         self._scenario_stopped_actors = []
 
     def _stop_road_back_vehicles(self):
@@ -1770,7 +1766,7 @@ class BackgroundBehavior(AtomicBehavior):
         """
         for lane in self._road_dict:
             for actor in self._road_dict[lane].actors:
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if location and self._is_location_behind_ego(location):
                     self._actors_speed_perc[actor] = 0
                     self._scenario_stopped_back_actors.append(actor)
@@ -1786,7 +1782,7 @@ class BackgroundBehavior(AtomicBehavior):
     def _move_actors_forward(self, actors, space):
         """Teleports the actors forward a set distance"""
         for actor in list(actors):
-            location = CarlaDataProvider.get_location(actor)
+            location = PanoSimDataProvider.get_location(actor)
             if not location:
                 continue
 
@@ -1823,7 +1819,7 @@ class BackgroundBehavior(AtomicBehavior):
         front_actors = []
         min_distance = float('inf')
         for actor in self._road_dict[self._ego_key].actors:
-            location = CarlaDataProvider.get_location(actor)
+            location = PanoSimDataProvider.get_location(actor)
             if not location or self._is_location_behind_ego(location):
                 continue
 
@@ -1855,7 +1851,7 @@ class BackgroundBehavior(AtomicBehavior):
             if collision_dist < destruction_dist:
                 self._destroy_actor(actor)
             elif collision_dist < stop_dist:
-                actor.set_target_velocity(carla.Vector3D())
+                actor.set_target_velocity(PanoSimVector3D())
 
     def _remove_road_lane(self, lane_wp):
         """Removes a road lane"""
@@ -1897,7 +1893,7 @@ class BackgroundBehavior(AtomicBehavior):
             print(f"WARNING: Couldn't add a lane {add_lane_key} as it is already part of the road")
             return
 
-        ego_speed = CarlaDataProvider.get_velocity(self._ego_actor)
+        ego_speed = PanoSimDataProvider.get_velocity(self._ego_actor)
         spawn_dist = self._road_spawn_dist + 2 * ego_speed
 
         spawn_wps = []
@@ -1980,7 +1976,7 @@ class BackgroundBehavior(AtomicBehavior):
         """
         def handle_actors(actor_list):
             for actor in list(actor_list):
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if location and not self._is_location_behind_ego(location):
                     self._destroy_actor(actor)
 
@@ -2118,16 +2114,16 @@ class BackgroundBehavior(AtomicBehavior):
 
     def _spawn_actor(self, spawn_wp, ego_dist=0):
         """Spawns an actor"""
-        ego_location = CarlaDataProvider.get_location(self._ego_actor)
+        ego_location = PanoSimDataProvider.get_location(self._ego_actor)
         if ego_location.distance(spawn_wp.transform.location) < ego_dist:
             return None
 
-        spawn_transform = carla.Transform(
-            spawn_wp.transform.location + carla.Location(z=self._spawn_vertical_shift),
+        spawn_transform = PanoSimTransform(
+            spawn_wp.transform.location + PanoSimLocation(z=self._spawn_vertical_shift),
             spawn_wp.transform.rotation
         )
 
-        actor = CarlaDataProvider.request_new_actor(
+        actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', spawn_transform, 'background', True,
             attribute_filter={'base_type': 'car', 'has_lights': True}, tick=False
         )
@@ -2140,16 +2136,16 @@ class BackgroundBehavior(AtomicBehavior):
     def _spawn_actors(self, spawn_wps, ego_dist=0):
         """Spawns several actors in batch"""
         spawn_transforms = []
-        ego_location = CarlaDataProvider.get_location(self._ego_actor)
+        ego_location = PanoSimDataProvider.get_location(self._ego_actor)
         for wp in spawn_wps:
             if ego_location.distance(wp.transform.location) < ego_dist:
                 continue
             spawn_transforms.append(
-                carla.Transform(wp.transform.location + carla.Location(z=self._spawn_vertical_shift),
+                PanoSimTransform(wp.transform.location + PanoSimLocation(z=self._spawn_vertical_shift),
                                 wp.transform.rotation)
             )
 
-        actors = CarlaDataProvider.request_new_batch_actors(
+        actors = PanoSimDataProvider.request_new_batch_actors(
             'vehicle.*', len(spawn_transforms), spawn_transforms, True, False, 'background',
             attribute_filter=self._attribute_filter, tick=False)
 
@@ -2163,16 +2159,16 @@ class BackgroundBehavior(AtomicBehavior):
 
     def _spawn_source_actor(self, source, ego_dist=20):
         """Given a source, spawns an actor at that source"""
-        ego_location = CarlaDataProvider.get_location(self._ego_actor)
+        ego_location = PanoSimDataProvider.get_location(self._ego_actor)
         source_transform = source.wp.transform
         if ego_location.distance(source_transform.location) < ego_dist:
             return None
 
-        new_transform = carla.Transform(
-            source_transform.location + carla.Location(z=self._spawn_vertical_shift),
+        new_transform = PanoSimTransform(
+            source_transform.location + PanoSimLocation(z=self._spawn_vertical_shift),
             source_transform.rotation
         )
-        actor = CarlaDataProvider.request_new_actor(
+        actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', new_transform, rolename='background',
             autopilot=True, random_location=False, attribute_filter=self._attribute_filter, tick=False)
 
@@ -2200,7 +2196,7 @@ class BackgroundBehavior(AtomicBehavior):
         scenario_actors = self._scenario_stopped_actors + self._scenario_stopped_back_actors
         for lane_key in self._road_dict:
             for i, actor in enumerate(self._road_dict[lane_key].actors):
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if not location:
                     continue
                 if self.debug:
@@ -2221,13 +2217,13 @@ class BackgroundBehavior(AtomicBehavior):
                     # Ensure only ending lanes are affected. not sure if it is needed though
                     next_wps = actor_wp.next(0.5)
                     if next_wps and next_wps[0].lane_width < actor_wp.lane_width:
-                        actor.set_target_velocity(carla.Vector3D(0, 0, 0))
+                        actor.set_target_velocity(PanoSimVector3D(0, 0, 0))
                         self._actors_speed_perc[actor] = 0
                         lights = actor.get_light_state()
-                        lights |= carla.VehicleLightState.RightBlinker
-                        lights |= carla.VehicleLightState.LeftBlinker
-                        lights |= carla.VehicleLightState.Position
-                        actor.set_light_state(carla.VehicleLightState(lights))
+                        lights |= PanoSimVehicleLightState.RightBlinker
+                        lights |= PanoSimVehicleLightState.LeftBlinker
+                        lights |= PanoSimVehicleLightState.Position
+                        actor.set_light_state(PanoSimVehicleLightState(lights))
                         actor.set_autopilot(False, self._tm_port)
                         continue
 
@@ -2249,7 +2245,7 @@ class BackgroundBehavior(AtomicBehavior):
             percentage = distance / (self._max_radius - self._min_radius) * 100 + 100
             percentage = max(min(percentage, 200), 0)
         else:
-            ego_speed = CarlaDataProvider.get_velocity(self._ego_actor)
+            ego_speed = PanoSimDataProvider.get_velocity(self._ego_actor)
             base_percentage = ego_speed / self._ego_target_speed * 100
             true_distance = distance - self._scenario_junction_entry_distance
             percentage = true_distance / (self._max_radius - self._min_radius) * 100 + base_percentage
@@ -2266,7 +2262,7 @@ class BackgroundBehavior(AtomicBehavior):
                 wps = get_same_dir_lanes(reference_wp)
             else: # Handle fake junction by using its entry / exit wps
                 wps = []
-                for junction_wps in reference_wp.get_junction().get_waypoints(carla.LaneType.Driving):
+                for junction_wps in reference_wp.get_junction().get_waypoints(PanoSimLaneType.Driving):
                     if get_road_key(junction_wps[index]) == get_road_key(reference_wp):
                         wps.append(junction_wps[index])
             return wps
@@ -2397,7 +2393,7 @@ class BackgroundBehavior(AtomicBehavior):
             for actor in list(actor_dict):
                 if actor not in actor_dict:
                     continue  # Actor was removed during the loop
-                location = CarlaDataProvider.get_location(actor)
+                location = PanoSimDataProvider.get_location(actor)
                 if not location:
                     continue
 
@@ -2475,7 +2471,7 @@ class BackgroundBehavior(AtomicBehavior):
         """
         opposite_dist = max(self._opposite_sources_dist, self._opposite_spawn_dist)
         for actor in list(self._opposite_actors):
-            location = CarlaDataProvider.get_location(actor)
+            location = PanoSimDataProvider.get_location(actor)
             if not location:
                 continue
             if self.debug:
@@ -2559,7 +2555,7 @@ class BackgroundBehavior(AtomicBehavior):
         updating its information. This never checks for backwards movements to avoid unnedded confusion.
         It also saves its max speed, used as a baseline for all BA vehicles.
         """
-        location = CarlaDataProvider.get_location(self._ego_actor)
+        location = PanoSimDataProvider.get_location(self._ego_actor)
 
         prev_index = self._route_index
         for index in range(self._route_index, min(self._route_index + self._route_buffer, self._route_length)):
@@ -2577,12 +2573,12 @@ class BackgroundBehavior(AtomicBehavior):
             for i in range(prev_index, self._route_index):
                 option_1 = self._route_options[i]
                 option_2 = self._route_options[i+1]
-                if option_1 == RoadOption.CHANGELANELEFT or option_2 == RoadOption.CHANGELANELEFT:
+                if option_1 == PanoSimRoadOption.CHANGELANELEFT or option_2 == PanoSimRoadOption.CHANGELANELEFT:
                     loc_1 = self._route[i].transform.location
                     loc_2 = self._route[i+1].transform.location
                     if abs(loc_1.distance(loc_2)) > 2.5:  # Lane offset plus a bit forward
                         self._scenario_remove_lane_offset += 1
-                elif option_1 == RoadOption.CHANGELANERIGHT or option_2 == RoadOption.CHANGELANERIGHT:
+                elif option_1 == PanoSimRoadOption.CHANGELANERIGHT or option_2 == PanoSimRoadOption.CHANGELANERIGHT:
                     loc_1 = self._route[i].transform.location
                     loc_2 = self._route[i+1].transform.location
                     if abs(loc_1.distance(loc_2)) > 2.5:  # Lane offset plus a bit forward

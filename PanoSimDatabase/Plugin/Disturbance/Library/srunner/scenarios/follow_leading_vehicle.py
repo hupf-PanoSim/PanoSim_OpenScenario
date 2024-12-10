@@ -20,9 +20,7 @@ import random
 
 import py_trees
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTransform, PanoSimLocation, PanoSimRotation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
                                                                       KeepVelocity,
@@ -57,7 +55,7 @@ class FollowLeadingVehicle(BasicScenario):
         If randomize is True, the scenario parameters are randomized
         """
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._first_vehicle_location = 25
         self._first_vehicle_speed = 10
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
@@ -80,7 +78,7 @@ class FollowLeadingVehicle(BasicScenario):
             # Example code how to randomize start location
             # distance = random.randint(20, 80)
             # new_location, _ = get_location_in_distance(self.ego_vehicles[0], distance)
-            # waypoint = CarlaDataProvider.get_map().get_waypoint(new_location)
+            # waypoint = PanoSimDataProvider.get_map().get_waypoint(new_location)
             # waypoint.transform.location.z += 39
             # self.other_actors[0].set_transform(waypoint.transform)
 
@@ -91,7 +89,7 @@ class FollowLeadingVehicle(BasicScenario):
         waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._first_vehicle_location)
         transform = waypoint.transform
         transform.location.z += 0.5
-        first_vehicle = CarlaDataProvider.request_new_actor('vehicle.nissan.patrol', transform)
+        first_vehicle = PanoSimDataProvider.request_new_actor('vehicle.nissan.patrol', transform)
         self.other_actors.append(first_vehicle)
 
     def _create_behavior(self):
@@ -171,7 +169,7 @@ class FollowLeadingVehicleWithObstacle(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._first_actor_location = 25
         self._second_actor_location = self._first_actor_location + 41
         self._first_actor_speed = 10
@@ -197,33 +195,33 @@ class FollowLeadingVehicleWithObstacle(BasicScenario):
 
         first_actor_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._first_actor_location)
         second_actor_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._second_actor_location)
-        first_actor_transform = carla.Transform(
-            carla.Location(first_actor_waypoint.transform.location.x,
+        first_actor_transform = PanoSimTransform(
+            PanoSimLocation(first_actor_waypoint.transform.location.x,
                            first_actor_waypoint.transform.location.y,
                            first_actor_waypoint.transform.location.z - 500),
             first_actor_waypoint.transform.rotation)
-        self._first_actor_transform = carla.Transform(
-            carla.Location(first_actor_waypoint.transform.location.x,
+        self._first_actor_transform = PanoSimTransform(
+            PanoSimLocation(first_actor_waypoint.transform.location.x,
                            first_actor_waypoint.transform.location.y,
                            first_actor_waypoint.transform.location.z + 1),
             first_actor_waypoint.transform.rotation)
         yaw_1 = second_actor_waypoint.transform.rotation.yaw + 90
-        second_actor_transform = carla.Transform(
-            carla.Location(second_actor_waypoint.transform.location.x,
+        second_actor_transform = PanoSimTransform(
+            PanoSimLocation(second_actor_waypoint.transform.location.x,
                            second_actor_waypoint.transform.location.y,
                            second_actor_waypoint.transform.location.z - 500),
-            carla.Rotation(second_actor_waypoint.transform.rotation.pitch, yaw_1,
+            PanoSimRotation(second_actor_waypoint.transform.rotation.pitch, yaw_1,
                            second_actor_waypoint.transform.rotation.roll))
-        self._second_actor_transform = carla.Transform(
-            carla.Location(second_actor_waypoint.transform.location.x,
+        self._second_actor_transform = PanoSimTransform(
+            PanoSimLocation(second_actor_waypoint.transform.location.x,
                            second_actor_waypoint.transform.location.y,
                            second_actor_waypoint.transform.location.z + 1),
-            carla.Rotation(second_actor_waypoint.transform.rotation.pitch, yaw_1,
+            PanoSimRotation(second_actor_waypoint.transform.rotation.pitch, yaw_1,
                            second_actor_waypoint.transform.rotation.roll))
 
-        first_actor = CarlaDataProvider.request_new_actor(
+        first_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.nissan.patrol', first_actor_transform)
-        second_actor = CarlaDataProvider.request_new_actor(
+        second_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.diamondback.century', second_actor_transform)
 
         first_actor.set_simulate_physics(enabled=False)

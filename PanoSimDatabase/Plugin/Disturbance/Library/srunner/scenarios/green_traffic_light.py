@@ -11,9 +11,7 @@ to let the ego gather speed
 
 import py_trees
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTrafficLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import TrafficLightFreezer
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitEndIntersection
 from srunner.scenarios.basic_scenario import BasicScenario
@@ -33,7 +31,7 @@ class PriorityAtJunction(BasicScenario):
         Setup all relevant parameters and create scenario
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._tl_dict = {}
 
         self.timeout = timeout
@@ -49,7 +47,7 @@ class PriorityAtJunction(BasicScenario):
         Get the junction and traffic lights
         """
         ego_location = config.trigger_points[0].location
-        self._ego_wp = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._ego_wp = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         # Get the junction
         starting_wp = self._ego_wp
@@ -73,7 +71,7 @@ class PriorityAtJunction(BasicScenario):
         ego_landmark = self._ego_wp.get_landmarks_of_type(junction_dist + 1, "1000001")[0]
         ego_tl = self._world.get_traffic_light(ego_landmark)
         for tl in tls:
-            self._tl_dict[tl] = carla.TrafficLightState.Green if tl.id == ego_tl.id else carla.TrafficLightState.Red
+            self._tl_dict[tl] = PanoSimTrafficLightState.Green if tl.id == ego_tl.id else PanoSimTrafficLightState.Red
 
     def _create_behavior(self):
         """

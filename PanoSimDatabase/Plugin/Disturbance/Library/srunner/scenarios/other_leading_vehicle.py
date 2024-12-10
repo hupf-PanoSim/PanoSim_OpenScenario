@@ -17,9 +17,7 @@ either via a timeout, or if the ego vehicle drives some distance.
 
 import py_trees
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       WaypointFollower,
                                                                       ActorDestroy)
@@ -46,7 +44,7 @@ class OtherLeadingVehicle(BasicScenario):
         Setup all relevant parameters and create scenario
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._first_vehicle_location = 35
         self._second_vehicle_location = self._first_vehicle_location + 1
         self._ego_vehicle_drive_distance = self._first_vehicle_location * 4
@@ -74,13 +72,13 @@ class OtherLeadingVehicle(BasicScenario):
         second_vehicle_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._second_vehicle_location)
         second_vehicle_waypoint = second_vehicle_waypoint.get_left_lane()
 
-        first_vehicle_transform = carla.Transform(first_vehicle_waypoint.transform.location,
+        first_vehicle_transform = PanoSimTransform(first_vehicle_waypoint.transform.location,
                                                   first_vehicle_waypoint.transform.rotation)
-        second_vehicle_transform = carla.Transform(second_vehicle_waypoint.transform.location,
+        second_vehicle_transform = PanoSimTransform(second_vehicle_waypoint.transform.location,
                                                    second_vehicle_waypoint.transform.rotation)
 
-        first_vehicle = CarlaDataProvider.request_new_actor('vehicle.nissan.patrol', first_vehicle_transform)
-        second_vehicle = CarlaDataProvider.request_new_actor('vehicle.audi.tt', second_vehicle_transform)
+        first_vehicle = PanoSimDataProvider.request_new_actor('vehicle.nissan.patrol', first_vehicle_transform)
+        second_vehicle = PanoSimDataProvider.request_new_actor('vehicle.audi.tt', second_vehicle_transform)
 
         self.other_actors.append(first_vehicle)
         self.other_actors.append(second_vehicle)

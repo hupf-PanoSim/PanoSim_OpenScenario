@@ -9,8 +9,8 @@ This module provides the base class for all autonomous agents
 
 from __future__ import print_function
 
-import carla
 
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl
 from srunner.autoagents.sensor_interface import SensorInterface
 from srunner.scenariomanager.timer import GameTime
 from srunner.tools.route_manipulation import downsample_route
@@ -66,7 +66,7 @@ class AutonomousAgent(object):
         Execute one step of navigation.
         :return: control
         """
-        control = carla.VehicleControl()
+        control = PanoSimVehicleControl()
         control.steer = 0.0
         control.throttle = 0.0
         control.brake = 0.0

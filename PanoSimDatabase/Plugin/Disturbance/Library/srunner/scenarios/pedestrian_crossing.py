@@ -9,9 +9,8 @@ Pedestrians crossing through the middle of the lane.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform, PanoSimLaneType
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       KeepVelocity,
                                                                       WaitForever,
@@ -31,7 +30,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -55,10 +54,10 @@ class PedestrianCrossing(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
-        self._rng = CarlaDataProvider.get_random_seed()
+        self._rng = PanoSimDataProvider.get_random_seed()
 
         self._adversary_speed = 1.3  # Speed of the adversary [m/s]
         self._reaction_time = 3.5  # Time the agent has to react to avoid the collision [s]
@@ -93,7 +92,7 @@ class PedestrianCrossing(BasicScenario):
         start_vec = wp.transform.get_forward_vector()
         start_right_vec = wp.transform.get_right_vector()
 
-        spawn_loc = wp.transform.location + carla.Location(
+        spawn_loc = wp.transform.location + PanoSimLocation(
             disp_x * start_vec.x + disp_y * start_right_vec.x,
             disp_x * start_vec.y + disp_y * start_right_vec.y,
             disp_x * start_vec.z + disp_y * start_right_vec.z + disp_z
@@ -101,7 +100,7 @@ class PedestrianCrossing(BasicScenario):
 
         spawn_rotation = wp.transform.rotation
         spawn_rotation.yaw += disp_yaw
-        return carla.Transform(spawn_loc, spawn_rotation)
+        return PanoSimTransform(spawn_loc, spawn_rotation)
 
     def _initialize_actors(self, config):
 
@@ -119,7 +118,7 @@ class PedestrianCrossing(BasicScenario):
 
         # Get the crosswalk start point
         start_wp = collision_wp
-        while start_wp.lane_type != carla.LaneType.Sidewalk:
+        while start_wp.lane_type != PanoSimLaneType.Sidewalk:
             wp = start_wp.get_right_lane()
             if wp is None:
                 raise ValueError("Couldn't find a waypoint to start the flow")
@@ -128,13 +127,13 @@ class PedestrianCrossing(BasicScenario):
         # Spawn the walkers
         for i, walker_data in enumerate(self._walker_data):
             spawn_transform = self._get_walker_transform(start_wp, walker_data)
-            walker = CarlaDataProvider.request_new_actor('walker.*', spawn_transform)
+            walker = PanoSimDataProvider.request_new_actor('walker.*', spawn_transform)
             if walker is None:
                 for walker in self.other_actors:
                     walker.destroy()
                 raise ValueError("Failed to spawn an adversary")
 
-            walker.set_location(spawn_transform.location + carla.Location(z=-200))
+            walker.set_location(spawn_transform.location + PanoSimLocation(z=-200))
             walker = self._replace_walker(walker)
 
             self.other_actors.append(walker)
@@ -223,11 +222,11 @@ class PedestrianCrossing(BasicScenario):
         walker.destroy()
         spawn_transform = self.ego_vehicles[0].get_transform()
         spawn_transform.location.z -= 50
-        walker = CarlaDataProvider.request_new_actor(type_id, spawn_transform)
+        walker = PanoSimDataProvider.request_new_actor(type_id, spawn_transform)
         if not walker:
             raise ValueError("Couldn't spawn the walker substitute")
         walker.set_simulate_physics(False)
-        walker.set_location(spawn_transform.location + carla.Location(z=-50))
+        walker.set_location(spawn_transform.location + PanoSimLocation(z=-50))
         return walker
 
     def _setup_scenario_trigger(self, config):

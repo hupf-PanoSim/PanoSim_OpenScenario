@@ -12,9 +12,8 @@ Scenarios in which the ego has to cross a flow of bycicles
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimLaneType, PanoSimTrafficLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import BicycleFlow, TrafficLightFreezer, ScenarioTimeout
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest, ScenarioTimeoutTest
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitEndIntersection
@@ -28,7 +27,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -66,7 +65,7 @@ class CrossingBicycleFlow(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._start_flow = convert_dict_to_location(config.other_parameters['start_actor_flow'])
@@ -94,7 +93,7 @@ class CrossingBicycleFlow(BasicScenario):
     def _initialize_actors(self, config):
 
         ego_location = config.trigger_points[0].location
-        self._ego_wp = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._ego_wp = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         # Get the junction
         starting_wp = self._ego_wp
@@ -108,7 +107,7 @@ class CrossingBicycleFlow(BasicScenario):
         junction = starting_wp.get_junction()
 
         # Get the plan
-        self._source_wp = self._map.get_waypoint(self._start_flow, lane_type=carla.LaneType.Biking)
+        self._source_wp = self._map.get_waypoint(self._start_flow, lane_type=PanoSimLaneType.Biking)
         if not self._source_wp or self._source_wp.transform.location.distance(self._start_flow) > 10:
             raise ValueError("Couldn't find a biking lane at the specified location")
 
@@ -147,11 +146,11 @@ class CrossingBicycleFlow(BasicScenario):
         self._init_tl_dict = {}
         for tl in tls:
             if tl.id == ego_tl.id:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Green
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Green
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
             else:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Red
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Red
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
 
 
     def _create_behavior(self):

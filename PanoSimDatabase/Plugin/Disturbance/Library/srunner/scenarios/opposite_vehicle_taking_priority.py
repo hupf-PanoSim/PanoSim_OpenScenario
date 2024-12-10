@@ -13,9 +13,8 @@ priority, e.g. by running a red traffic light.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleLightState, PanoSimTransform, PanoSimLocation, PanoSimTrafficLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
                                                                       TrafficLightFreezer,
@@ -49,7 +48,7 @@ class OppositeVehicleJunction(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._source_dist = 30
         self._sink_dist = 10
         self._adversary_speed = 60 / 3.6 # m/s
@@ -65,7 +64,7 @@ class OppositeVehicleJunction(BasicScenario):
         self._sync_time = 2.2  # Time the agent has to react to avoid the collision [s]
         self._min_trigger_dist = 12.0  # Min distance to the collision location that triggers the adversary [m]
 
-        self._lights = carla.VehicleLightState.Special1 | carla.VehicleLightState.Special2
+        self._lights = PanoSimVehicleLightState.Special1 | PanoSimVehicleLightState.Special2
 
         super().__init__("OppositeVehicleJunction",
                          ego_vehicles,
@@ -79,7 +78,7 @@ class OppositeVehicleJunction(BasicScenario):
         Custom initialization
         """
         ego_location = config.trigger_points[0].location
-        self._ego_wp = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._ego_wp = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         # Get the junction
         starting_wp = self._ego_wp
@@ -112,24 +111,24 @@ class OppositeVehicleJunction(BasicScenario):
         self._spawn_wp = spawn_wp
 
         source_transform = spawn_wp.transform
-        self._spawn_location = carla.Transform(
-            source_transform.location + carla.Location(z=0.1),
+        self._spawn_location = PanoSimTransform(
+            source_transform.location + PanoSimLocation(z=0.1),
             source_transform.rotation
         )
         self.parking_slots.append(source_transform.location)
 
         # Spawn the actor and move it below ground
-        opposite_actor = CarlaDataProvider.request_new_actor(
+        opposite_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', self._spawn_location, attribute_filter={'special_type': 'emergency'})
         if not opposite_actor:
             raise Exception("Couldn't spawn the actor")
         lights = opposite_actor.get_light_state()
         lights |= self._lights
-        opposite_actor.set_light_state(carla.VehicleLightState(lights))
+        opposite_actor.set_light_state(PanoSimVehicleLightState(lights))
         self.other_actors.append(opposite_actor)
 
-        opposite_transform = carla.Transform(
-            source_transform.location - carla.Location(z=500),
+        opposite_transform = PanoSimTransform(
+            source_transform.location - PanoSimLocation(z=500),
             source_transform.rotation
         )
         opposite_actor.set_transform(opposite_transform)
@@ -195,9 +194,9 @@ class OppositeVehicleRunningRedLight(OppositeVehicleJunction):
         self._tl_dict = {}
         for tl in tls:
             if tl == ego_tl:
-                self._tl_dict[tl] = carla.TrafficLightState.Green
+                self._tl_dict[tl] = PanoSimTrafficLightState.Green
             else:
-                self._tl_dict[tl] = carla.TrafficLightState.Red
+                self._tl_dict[tl] = PanoSimTrafficLightState.Red
 
     def _create_behavior(self):
         """

@@ -11,10 +11,8 @@ Wrapper for autonomous agents required for tracking and checking of used sensors
 
 from __future__ import print_function
 
-import carla
-
 from srunner.autoagents.sensor_interface import CallBack
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimRotation, PanoSimTransform
 
 
 class AgentWrapper(object):
@@ -44,7 +42,7 @@ class AgentWrapper(object):
         :param vehicle: ego vehicle
         :return:
         """
-        bp_library = CarlaDataProvider.get_world().get_blueprint_library()
+        bp_library = PanoSimDataProvider.get_world().get_blueprint_library()
         for sensor_spec in self._agent.sensors():
             # These are the sensors spawned on the carla world
             bp = bp_library.find(str(sensor_spec['type']))
@@ -52,11 +50,8 @@ class AgentWrapper(object):
                 bp.set_attribute('image_size_x', str(sensor_spec['width']))
                 bp.set_attribute('image_size_y', str(sensor_spec['height']))
                 bp.set_attribute('fov', str(sensor_spec['fov']))
-                sensor_location = carla.Location(x=sensor_spec['x'], y=sensor_spec['y'],
-                                                 z=sensor_spec['z'])
-                sensor_rotation = carla.Rotation(pitch=sensor_spec['pitch'],
-                                                 roll=sensor_spec['roll'],
-                                                 yaw=sensor_spec['yaw'])
+                sensor_location = PanoSimLocation(x=sensor_spec['x'], y=sensor_spec['y'], z=sensor_spec['z'])
+                sensor_rotation = PanoSimRotation(pitch=sensor_spec['pitch'], roll=sensor_spec['roll'], yaw=sensor_spec['yaw'])
             elif sensor_spec['type'].startswith('sensor.lidar'):
                 bp.set_attribute('range', str(sensor_spec['range']))
                 bp.set_attribute('rotation_frequency', str(sensor_spec['rotation_frequency']))
@@ -64,25 +59,21 @@ class AgentWrapper(object):
                 bp.set_attribute('upper_fov', str(sensor_spec['upper_fov']))
                 bp.set_attribute('lower_fov', str(sensor_spec['lower_fov']))
                 bp.set_attribute('points_per_second', str(sensor_spec['points_per_second']))
-                sensor_location = carla.Location(x=sensor_spec['x'], y=sensor_spec['y'],
-                                                 z=sensor_spec['z'])
-                sensor_rotation = carla.Rotation(pitch=sensor_spec['pitch'],
-                                                 roll=sensor_spec['roll'],
-                                                 yaw=sensor_spec['yaw'])
+                sensor_location = PanoSimLocation(x=sensor_spec['x'], y=sensor_spec['y'], z=sensor_spec['z'])
+                sensor_rotation = PanoSimRotation(pitch=sensor_spec['pitch'], roll=sensor_spec['roll'], yaw=sensor_spec['yaw'])
             elif sensor_spec['type'].startswith('sensor.other.gnss'):
-                sensor_location = carla.Location(x=sensor_spec['x'], y=sensor_spec['y'],
-                                                 z=sensor_spec['z'])
-                sensor_rotation = carla.Rotation()
+                sensor_location = PanoSimLocation(x=sensor_spec['x'], y=sensor_spec['y'], z=sensor_spec['z'])
+                sensor_rotation = PanoSimRotation()
 
             # create sensor
-            sensor_transform = carla.Transform(sensor_location, sensor_rotation)
-            sensor = CarlaDataProvider.get_world().spawn_actor(bp, sensor_transform, vehicle)
+            sensor_transform = PanoSimTransform(sensor_location, sensor_rotation)
+            sensor = PanoSimDataProvider.get_world().spawn_actor(bp, sensor_transform, vehicle)
             # setup callback
             sensor.listen(CallBack(sensor_spec['id'], sensor, self._agent.sensor_interface))
             self._sensors_list.append(sensor)
 
         # Tick once to spawn the sensors
-        CarlaDataProvider.get_world().tick()
+        PanoSimDataProvider.get_world().tick()
 
     def cleanup(self):
         """

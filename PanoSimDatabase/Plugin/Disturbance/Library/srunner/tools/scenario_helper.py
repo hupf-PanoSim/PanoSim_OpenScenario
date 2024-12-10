@@ -15,11 +15,8 @@ import shapely.affinity
 
 import numpy as np
 
-import carla
-from agents.tools.misc import vector
-from agents.navigation.local_planner import RoadOption
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicle, PanoSimWalker, PanoSimLocation, PanoSimLaneType, PanoSimTransform, PanoSimRoadOption
+from srunner.scenariomanager.data_provider import PanoSim_vector, PanoSimVector3D
 
 
 def get_distance_along_route(route, target_location):
@@ -29,7 +26,7 @@ def get_distance_along_route(route, target_location):
     Note: If the location is not along the route, the route length will be returned
     """
 
-    wmap = CarlaDataProvider.get_map()
+    wmap = PanoSimDataProvider.get_map()
     covered_distance = 0
     prev_position = None
     found = False
@@ -124,13 +121,12 @@ def get_crossing_point(actor):
 
     @return point of crossing
     """
-    wp_cross = CarlaDataProvider.get_map().get_waypoint(actor.get_location())
+    wp_cross = PanoSimDataProvider.get_map().get_waypoint(actor.get_location())
 
     while not wp_cross.is_intersection:
         wp_cross = wp_cross.next(2)[0]
 
-    crossing = carla.Location(x=wp_cross.transform.location.x,
-                              y=wp_cross.transform.location.y, z=wp_cross.transform.location.z)
+    crossing = PanoSimLocation(x=wp_cross.transform.location.x, y=wp_cross.transform.location.y, z=wp_cross.transform.location.z)
 
     return crossing
 
@@ -142,7 +138,7 @@ def get_geometric_linear_intersection(ego_location, other_location, move_to_junc
     @return point of intersection of the two vehicles
     """
 
-    wp_ego_1 = CarlaDataProvider.get_map().get_waypoint(ego_location)
+    wp_ego_1 = PanoSimDataProvider.get_map().get_waypoint(ego_location)
     wp_ego_2 = wp_ego_1.next(1)[0]
 
     if move_to_junction:
@@ -157,7 +153,7 @@ def get_geometric_linear_intersection(ego_location, other_location, move_to_junc
     ego_1_loc = wp_ego_1.transform.location
     ego_2_loc = wp_ego_2.transform.location
 
-    wp_other_1 = CarlaDataProvider.get_world().get_map().get_waypoint(other_location)
+    wp_other_1 = PanoSimDataProvider.get_world().get_map().get_waypoint(other_location)
     wp_other_2 = wp_other_1.next(1)[0]
 
     if move_to_junction:
@@ -185,7 +181,7 @@ def get_geometric_linear_intersection(ego_location, other_location, move_to_junc
     if z == 0:
         return None
 
-    return carla.Location(x=x/z, y=y/z, z=0)
+    return PanoSimLocation(x=x/z, y=y/z, z=0)
 
 
 def get_location_in_distance(actor, distance):
@@ -195,7 +191,7 @@ def get_location_in_distance(actor, distance):
 
     @return obtained location and the traveled distance
     """
-    waypoint = CarlaDataProvider.get_map().get_waypoint(actor.get_location())
+    waypoint = PanoSimDataProvider.get_map().get_waypoint(actor.get_location())
     traveled_distance = 0
     while not waypoint.is_intersection and traveled_distance < distance:
         waypoint_new = waypoint.next(1.0)[-1]
@@ -260,7 +256,7 @@ def generate_target_waypoint_list(waypoint, turn=0):
             waypoint = choose_at_junction(waypoint, wp_choice, turn)
         else:
             waypoint = wp_choice[0]
-        plan.append((waypoint, RoadOption.LANEFOLLOW))
+        plan.append((waypoint, PanoSimRoadOption.LANEFOLLOW))
         #   End condition for the behavior
         if turn != 0 and reached_junction and len(plan) >= 3:
             v_1 = vector(
@@ -295,9 +291,9 @@ def generate_target_waypoint_list_multilane(waypoint, change='left',  # pylint: 
     """
 
     plan = []
-    plan.append((waypoint, RoadOption.LANEFOLLOW))  # start position
+    plan.append((waypoint, PanoSimRoadOption.LANEFOLLOW))  # start position
 
-    option = RoadOption.LANEFOLLOW
+    option = PanoSimRoadOption.LANEFOLLOW
 
     # Same lane
     distance = 0
@@ -307,12 +303,12 @@ def generate_target_waypoint_list_multilane(waypoint, change='left',  # pylint: 
             return None, None
         next_wp = next_wps[0]
         distance += next_wp.transform.location.distance(plan[-1][0].transform.location)
-        plan.append((next_wp, RoadOption.LANEFOLLOW))
+        plan.append((next_wp, PanoSimRoadOption.LANEFOLLOW))
 
     if change == 'left':
-        option = RoadOption.CHANGELANELEFT
+        option = PanoSimRoadOption.CHANGELANELEFT
     elif change == 'right':
-        option = RoadOption.CHANGELANERIGHT
+        option = PanoSimRoadOption.CHANGELANERIGHT
     else:
         # ERROR, input value for change must be 'left' or 'right'
         return None, None
@@ -339,7 +335,7 @@ def generate_target_waypoint_list_multilane(waypoint, change='left',  # pylint: 
                 return None, None
             side_wp = next_wp.get_right_lane()
 
-        if not side_wp or side_wp.lane_type != carla.LaneType.Driving:
+        if not side_wp or side_wp.lane_type != PanoSimLaneType.Driving:
             return None, None
 
         # Update the plan
@@ -354,7 +350,7 @@ def generate_target_waypoint_list_multilane(waypoint, change='left',  # pylint: 
             return None, None
         next_wp = next_wps[0]
         distance += next_wp.transform.location.distance(plan[-1][0].transform.location)
-        plan.append((next_wp, RoadOption.LANEFOLLOW))
+        plan.append((next_wp, PanoSimRoadOption.LANEFOLLOW))
 
     target_lane_id = plan[-1][0].lane_id
 
@@ -392,7 +388,7 @@ def generate_target_waypoint_in_route(waypoint, route):
     @returns a waypoint list according to turn input
     """
     target_waypoint = None
-    wmap = CarlaDataProvider.get_map()
+    wmap = PanoSimDataProvider.get_map()
     reached_junction = False
 
     # Get the route location
@@ -414,11 +410,11 @@ def generate_target_waypoint_in_route(waypoint, route):
         road_option = route[i][1]
 
         # Enter the junction
-        if not reached_junction and (road_option in (RoadOption.LEFT, RoadOption.RIGHT, RoadOption.STRAIGHT)):
+        if not reached_junction and (road_option in (PanoSimRoadOption.LEFT, PanoSimRoadOption.RIGHT, PanoSimRoadOption.STRAIGHT)):
             reached_junction = True
 
         # End condition for the behavior, at the end of the junction
-        if reached_junction and (road_option not in (RoadOption.LEFT, RoadOption.RIGHT, RoadOption.STRAIGHT)):
+        if reached_junction and (road_option not in (PanoSimRoadOption.LEFT, PanoSimRoadOption.RIGHT, PanoSimRoadOption.STRAIGHT)):
             target_waypoint = route_location
             break
 
@@ -431,16 +427,13 @@ def choose_at_junction(current_waypoint, next_choices, direction=0):
     """
     current_transform = current_waypoint.transform
     current_location = current_transform.location
-    projected_location = current_location + \
-        carla.Location(
-            x=math.cos(math.radians(current_transform.rotation.yaw)),
-            y=math.sin(math.radians(current_transform.rotation.yaw)))
-    current_vector = vector(current_location, projected_location)
+    projected_location = current_location + PanoSimLocation(x=math.cos(math.radians(current_transform.rotation.yaw)), y=math.sin(math.radians(current_transform.rotation.yaw)))
+    current_vector = PanoSim_vector(current_location, projected_location)
     cross_list = []
     cross_to_waypoint = {}
     for waypoint in next_choices:
         waypoint = waypoint.next(10)[0]
-        select_vector = vector(current_location, waypoint.transform.location)
+        select_vector = PanoSim_vector(current_location, waypoint.transform.location)
         cross = np.cross(current_vector, select_vector)[2]
         cross_list.append(cross)
         cross_to_waypoint[cross] = waypoint
@@ -460,8 +453,8 @@ def get_intersection(ego_actor, other_actor):
     Obtain a intersection point between two actor's location
     @return the intersection location
     """
-    waypoint = CarlaDataProvider.get_map().get_waypoint(ego_actor.get_location())
-    waypoint_other = CarlaDataProvider.get_map().get_waypoint(other_actor.get_location())
+    waypoint = PanoSimDataProvider.get_map().get_waypoint(ego_actor.get_location())
+    waypoint_other = PanoSimDataProvider.get_map().get_waypoint(other_actor.get_location())
     max_dist = float("inf")
     distance = float("inf")
     while distance <= max_dist:
@@ -471,12 +464,10 @@ def get_intersection(ego_actor, other_actor):
         #   Select the straighter path at intersection
         if len(waypoint_choice) > 1:
             max_dot = -1 * float('inf')
-            loc_projection = current_location + carla.Location(
-                x=math.cos(math.radians(waypoint.transform.rotation.yaw)),
-                y=math.sin(math.radians(waypoint.transform.rotation.yaw)))
-            v_current = vector(current_location, loc_projection)
+            loc_projection = current_location + PanoSimLocation(x=math.cos(math.radians(waypoint.transform.rotation.yaw)), y=math.sin(math.radians(waypoint.transform.rotation.yaw)))
+            v_current = PanoSim_vector(current_location, loc_projection)
             for wp_select in waypoint_choice:
-                v_select = vector(current_location, wp_select.transform.location)
+                v_select = PanoSim_vector(current_location, wp_select.transform.location)
                 dot_select = np.dot(v_current, v_select)
                 if dot_select > max_dot:
                     max_dot = dot_select
@@ -492,7 +483,7 @@ def detect_lane_obstacle(actor, extension_factor=3, margin=1.02):
     """
     This function identifies if an obstacle is present in front of the reference actor
     """
-    world_actors = CarlaDataProvider.get_all_actors().filter('vehicle.*')
+    world_actors = PanoSimDataProvider.get_all_actors().filter('vehicle.*')
     actor_bbox = actor.bounding_box
     actor_transform = actor.get_transform()
     actor_location = actor_transform.location
@@ -500,23 +491,18 @@ def detect_lane_obstacle(actor, extension_factor=3, margin=1.02):
     actor_vector = np.array([actor_vector.x, actor_vector.y])
     actor_vector = actor_vector / np.linalg.norm(actor_vector)
     actor_vector = actor_vector * (extension_factor - 1) * actor_bbox.extent.x
-    actor_location = actor_location + carla.Location(actor_vector[0], actor_vector[1])
+    actor_location = actor_location + PanoSimLocation(actor_vector[0], actor_vector[1])
     actor_yaw = actor_transform.rotation.yaw
 
     is_hazard = False
     for adversary in world_actors:
-        if adversary.id != actor.id and \
-                actor_transform.location.distance(adversary.get_location()) < 50:
+        if adversary.id != actor.id and actor_transform.location.distance(adversary.get_location()) < 50:
             adversary_bbox = adversary.bounding_box
             adversary_transform = adversary.get_transform()
             adversary_loc = adversary_transform.location
             adversary_yaw = adversary_transform.rotation.yaw
-            overlap_adversary = RotatedRectangle(
-                adversary_loc.x, adversary_loc.y,
-                2 * margin * adversary_bbox.extent.x, 2 * margin * adversary_bbox.extent.y, adversary_yaw)
-            overlap_actor = RotatedRectangle(
-                actor_location.x, actor_location.y,
-                2 * margin * actor_bbox.extent.x * extension_factor, 2 * margin * actor_bbox.extent.y, actor_yaw)
+            overlap_adversary = RotatedRectangle(adversary_loc.x, adversary_loc.y, 2 * margin * adversary_bbox.extent.x, 2 * margin * adversary_bbox.extent.y, adversary_yaw)
+            overlap_actor = RotatedRectangle(actor_location.x, actor_location.y, 2 * margin * actor_bbox.extent.x * extension_factor, 2 * margin * actor_bbox.extent.y, actor_yaw)
             overlap_area = overlap_adversary.intersection(overlap_actor).area
             if overlap_area > 0:
                 is_hazard = True
@@ -553,7 +539,7 @@ def get_junction_topology(junction):
     used_exit_lanes = []
     entry_wps = []
     exit_wps = []
-    for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+    for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
         entry_wp = get_junction_entry_wp(entry_wp)
         if not entry_wp:
             continue
@@ -606,7 +592,7 @@ def get_closest_traffic_light(waypoint, traffic_lights=None):
     Checks all traffic lights part of 'traffic_lights', or all the town ones, if None are passed.
     """
     if not traffic_lights:
-        traffic_lights = CarlaDataProvider.get_all_actors().filter('*traffic_light*')
+        traffic_lights = PanoSimDataProvider.get_all_actors().filter('*traffic_light*')
 
     closest_dist = float('inf')
     closest_tl = None
@@ -629,7 +615,7 @@ def get_offset_transform(transform, offset):
     """
     if offset != 0:
         forward_vector = transform.rotation.get_forward_vector()
-        orthogonal_vector = carla.Vector3D(x=-forward_vector.y, y=forward_vector.x, z=forward_vector.z)
+        orthogonal_vector = PanoSimVector3D(x=-forward_vector.y, y=forward_vector.x, z=forward_vector.z)
         transform.location.x = transform.location.x + offset * orthogonal_vector.x
         transform.location.y = transform.location.y + offset * orthogonal_vector.y
     return transform
@@ -640,12 +626,12 @@ def get_troad_from_transform(actor_transform):
     This function finds the lateral road position (t) from actor_transform
     """
     actor_loc = actor_transform.location
-    c_wp = CarlaDataProvider.get_map().get_waypoint(actor_loc)
+    c_wp = PanoSimDataProvider.get_map().get_waypoint(actor_loc)
     left_lanes, right_lanes = [], []
     # opendrive standard: (left ==> +ve lane_id) and (right ==> -ve lane_id)
-    ref_lane = CarlaDataProvider.get_map().get_waypoint_xodr(c_wp.road_id, 0, c_wp.s)
+    ref_lane = PanoSimDataProvider.get_map().get_waypoint_xodr(c_wp.road_id, 0, c_wp.s)
     for i in range(-50, 50):
-        _wp = CarlaDataProvider.get_map().get_waypoint_xodr(c_wp.road_id, i, c_wp.s)
+        _wp = PanoSimDataProvider.get_map().get_waypoint_xodr(c_wp.road_id, i, c_wp.s)
         if _wp:
             if i < 0:
                 left_lanes.append(_wp)
@@ -659,8 +645,7 @@ def get_troad_from_transform(actor_transform):
         lm_lane_offset = lm_lane.lane_width / 2
     else:
         lm_lane, lm_lane_offset = ref_lane, 0
-    lm_tr = get_offset_transform(carla.Transform(lm_lane.transform.location, lm_lane.transform.rotation),
-                                 lm_lane_offset)
+    lm_tr = get_offset_transform(PanoSimTransform(lm_lane.transform.location, lm_lane.transform.rotation), lm_lane_offset)
     distance_from_lm_lane_edge = lm_tr.location.distance(actor_loc)
     distance_from_lm_lane_ref_lane = lm_tr.location.distance(ref_lane.transform.location)
     if right_lanes:
@@ -670,9 +655,7 @@ def get_troad_from_transform(actor_transform):
         rm_lane_offset = -rm_lane.lane_width / 2
     else:
         rm_lane, rm_lane_offset = ref_lane, -distance_from_lm_lane_ref_lane
-    distance_from_rm_lane_edge = get_offset_transform(carla.Transform(rm_lane.transform.location,
-                                                                      rm_lane.transform.rotation),
-                                                      rm_lane_offset).location.distance(actor_loc)
+    distance_from_rm_lane_edge = get_offset_transform(PanoSimTransform(rm_lane.transform.location, rm_lane.transform.rotation), rm_lane_offset).location.distance(actor_loc)
     t_road = ref_lane.transform.location.distance(actor_loc)
     if not right_lanes or not left_lanes:
         closest_road_edge = min(distance_from_lm_lane_edge, distance_from_rm_lane_edge)
@@ -692,14 +675,14 @@ def get_distance_between_actors(current, target, distance_type="euclidianDistanc
     attributes
     """
 
-    target_transform = CarlaDataProvider.get_transform(target)
-    current_transform = CarlaDataProvider.get_transform(current)
-    target_wp = CarlaDataProvider.get_map().get_waypoint(target_transform.location)
-    current_wp = CarlaDataProvider.get_map().get_waypoint(current_transform.location)
+    target_transform = PanoSimDataProvider.get_transform(target)
+    current_transform = PanoSimDataProvider.get_transform(current)
+    target_wp = PanoSimDataProvider.get_map().get_waypoint(target_transform.location)
+    current_wp = PanoSimDataProvider.get_map().get_waypoint(current_transform.location)
 
     extent_sum_x, extent_sum_y = 0, 0
     if freespace:
-        if isinstance(target, (carla.Vehicle, carla.Walker)):
+        if isinstance(target, (PanoSimVehicle, PanoSimWalker)):
             extent_sum_x = target.bounding_box.extent.x + current.bounding_box.extent.x
             extent_sum_y = target.bounding_box.extent.y + current.bounding_box.extent.y
     if distance_type == "longitudinal":
@@ -748,7 +731,7 @@ def get_same_dir_lanes(waypoint):
     right_wp = waypoint
     while True:
         possible_right_wp = right_wp.get_right_lane()
-        if possible_right_wp is None or possible_right_wp.lane_type != carla.LaneType.Driving:
+        if possible_right_wp is None or possible_right_wp.lane_type != PanoSimLaneType.Driving:
             break
         right_wp = possible_right_wp
         same_dir_wps.append(right_wp)
@@ -757,7 +740,7 @@ def get_same_dir_lanes(waypoint):
     left_wp = waypoint
     while True:
         possible_left_wp = left_wp.get_left_lane()
-        if possible_left_wp is None or possible_left_wp.lane_type != carla.LaneType.Driving:
+        if possible_left_wp is None or possible_left_wp.lane_type != PanoSimLaneType.Driving:
             break
         if possible_left_wp.lane_id * left_wp.lane_id < 0:
             break
@@ -792,7 +775,7 @@ def get_opposite_dir_lanes(waypoint):
     # Check roads on the right
     right_wp = other_dir_wp
     while True:
-        if right_wp.lane_type == carla.LaneType.Driving:
+        if right_wp.lane_type == PanoSimLaneType.Driving:
             other_dir_wps.append(right_wp)
         possible_right_wp = right_wp.get_right_lane()
         if possible_right_wp is None:

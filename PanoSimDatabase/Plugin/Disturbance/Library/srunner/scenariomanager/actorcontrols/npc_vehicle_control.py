@@ -11,11 +11,9 @@ This module provides an example control for vehicles
 
 import math
 
-import carla
-from agents.navigation.basic_agent import LocalPlanner
-from agents.navigation.local_planner import RoadOption
+# from agents.navigation.basic_agent import LocalPlanner
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLaneType, PanoSimRoadOption, PanoSimVehicleLightState, PanoSimVector3D
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 
 
@@ -51,9 +49,8 @@ class NpcVehicleControl(BasicControl):
         """
         plan = []
         for transform in self._waypoints:
-            waypoint = CarlaDataProvider.get_map().get_waypoint(
-                transform.location, project_to_road=True, lane_type=carla.LaneType.Any)
-            plan.append((waypoint, RoadOption.LANEFOLLOW))
+            waypoint = PanoSimDataProvider.get_map().get_waypoint(transform.location, project_to_road=True, lane_type=PanoSimLaneType.Any)
+            plan.append((waypoint, PanoSimRoadOption.LANEFOLLOW))
         self._local_planner.set_global_plan(plan)
 
     def _update_offset(self):
@@ -125,17 +122,17 @@ class NpcVehicleControl(BasicControl):
                 yaw = self._actor.get_transform().rotation.yaw * (math.pi / 180)
                 vx = math.cos(yaw) * target_speed
                 vy = math.sin(yaw) * target_speed
-                self._actor.set_target_velocity(carla.Vector3D(vx, vy, 0))
+                self._actor.set_target_velocity(PanoSimVector3D(vx, vy, 0))
 
         # Change Brake light state
         if (current_speed > target_speed or target_speed < 0.2) and not self._brake_lights_active:
             light_state = self._actor.get_light_state()
-            light_state |= carla.VehicleLightState.Brake
-            self._actor.set_light_state(carla.VehicleLightState(light_state))
+            light_state |= PanoSimVehicleLightState.Brake
+            self._actor.set_light_state(PanoSimVehicleLightState(light_state))
             self._brake_lights_active = True
 
         if self._brake_lights_active and current_speed < target_speed:
             self._brake_lights_active = False
             light_state = self._actor.get_light_state()
-            light_state &= ~carla.VehicleLightState.Brake
-            self._actor.set_light_state(carla.VehicleLightState(light_state))
+            light_state &= ~PanoSimVehicleLightState.Brake
+            self._actor.set_light_state(PanoSimVehicleLightState(light_state))

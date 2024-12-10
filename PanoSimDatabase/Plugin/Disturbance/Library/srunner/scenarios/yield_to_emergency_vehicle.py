@@ -12,9 +12,8 @@ Scenario in which the ego has to yield its lane to emergency vehicle.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
                                                                       Idle,
@@ -30,7 +29,7 @@ from srunner.tools.background_manager import RemoveRoadLane, ReAddRoadLane
 class YieldToEmergencyVehicle(BasicScenario):
     """
     This class holds everything required for a scenario in which the ego has to yield its lane to emergency vehicle.
-    The background activity will be removed from the lane the emergency vehicle will pass through, 
+    The background activity will be removed from the lane the emergency vehicle will pass through,
     and will be recreated once the scenario is over.
 
     Should be on the highway which is long enough and has no junctions.
@@ -44,7 +43,7 @@ class YieldToEmergencyVehicle(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
         self._ev_idle_time = 10  # seconds
 
@@ -90,8 +89,7 @@ class YieldToEmergencyVehicle(BasicScenario):
 
         self._ev_start_transform = ev_points[0].transform
 
-        actor = CarlaDataProvider.request_new_actor(
-            "vehicle.*.*", self._ev_start_transform, attribute_filter={'special_type': 'emergency'})
+        actor = PanoSimDataProvider.request_new_actor("vehicle.*.*", self._ev_start_transform, attribute_filter={'special_type': 'emergency'})
         if actor is None:
             raise Exception("Couldn't spawn the emergency vehicle")
 
@@ -102,8 +100,8 @@ class YieldToEmergencyVehicle(BasicScenario):
         actor.set_location(new_location)
 
         # Turn on special lights
-        actor.set_light_state(carla.VehicleLightState(
-            carla.VehicleLightState.Special1 | carla.VehicleLightState.Special2))
+        actor.set_light_state(PanoSimVehicleLightState(
+            PanoSimVehicleLightState.Special1 | PanoSimVehicleLightState.Special2))
 
         self.other_actors.append(actor)
 
@@ -111,7 +109,7 @@ class YieldToEmergencyVehicle(BasicScenario):
         """
         Spawn the EV behind and wait for it to be close-by. After it has approached,
         give the ego a certain amount of time to yield to it.
-        
+
         Sequence:
         - RemoveRoadLane
         - ActorTransformSetter

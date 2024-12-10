@@ -9,9 +9,7 @@
 This module provides the key configuration parameters for a route-based scenario
 """
 
-import carla
-from agents.navigation.local_planner import RoadOption
-
+from srunner.scenariomanager.data_provider import PanoSimLocation, PanoSimRoadOption
 from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration
 
 
@@ -35,9 +33,9 @@ class RouteConfiguration(object):
             y = float(waypoint.attrib.get('y', 0))
             z = float(waypoint.attrib.get('z', 0))
             c = waypoint.attrib.get('connection', '')
-            connection = RoadOption[c.split('.')[1]]
+            connection = PanoSimRoadOption[c.split('.')[1]]
 
-            self.data.append((carla.Location(x, y, z), connection))
+            self.data.append((PanoSimLocation(x, y, z), connection))
 
 
 class RouteScenarioConfiguration(ScenarioConfiguration):

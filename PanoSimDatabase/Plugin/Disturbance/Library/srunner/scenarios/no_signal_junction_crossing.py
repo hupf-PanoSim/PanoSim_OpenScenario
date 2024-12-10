@@ -12,9 +12,8 @@ And encounters another vehicle passing across the junction.
 """
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
                                                                       SyncArrival,
@@ -65,12 +64,12 @@ class NoSignalJunctionCrossing(BasicScenario):
         Custom initialization
         """
         self._other_actor_transform = config.other_actors[0].transform
-        first_vehicle_transform = carla.Transform(
-            carla.Location(config.other_actors[0].transform.location.x,
+        first_vehicle_transform = PanoSimTransform(
+            PanoSimLocation(config.other_actors[0].transform.location.x,
                            config.other_actors[0].transform.location.y,
                            config.other_actors[0].transform.location.z - 500),
             config.other_actors[0].transform.rotation)
-        first_vehicle = CarlaDataProvider.request_new_actor(config.other_actors[0].model, first_vehicle_transform)
+        first_vehicle = PanoSimDataProvider.request_new_actor(config.other_actors[0].model, first_vehicle_transform)
         first_vehicle.set_simulate_physics(enabled=False)
         self.other_actors.append(first_vehicle)
 
@@ -94,7 +93,7 @@ class NoSignalJunctionCrossing(BasicScenario):
 
         sync_arrival = SyncArrival(
             self.other_actors[0], self.ego_vehicles[0],
-            carla.Location(x=-74.63, y=-136.34))
+            PanoSimLocation(x=-74.63, y=-136.34))
 
         pass_through_trigger = InTriggerRegion(
             self.ego_vehicles[0],

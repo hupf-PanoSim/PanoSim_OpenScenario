@@ -13,9 +13,7 @@ from __future__ import print_function
 
 import py_trees
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLaneType, PanoSimTransform, PanoSimLocation, PanoSimVehicle, PanoSimVehicleControl
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       HandBrakeVehicle,
                                                                       KeepVelocity,
@@ -44,15 +42,15 @@ def get_sidewalk_transform(waypoint, offset):
     new_rotation = waypoint.transform.rotation
     new_rotation.yaw += offset['yaw']
 
-    if waypoint.lane_type == carla.LaneType.Sidewalk:
+    if waypoint.lane_type == PanoSimLaneType.Sidewalk:
         new_location = waypoint.transform.location
     else:
         right_vector = waypoint.transform.get_right_vector()
-        offset_location = carla.Location(offset["k"] * right_vector.x, offset["k"] * right_vector.y)
+        offset_location = PanoSimLocation(offset["k"] * right_vector.x, offset["k"] * right_vector.y)
         new_location = waypoint.transform.location + offset_location
     new_location.z += offset['z']
 
-    return carla.Transform(new_location, new_rotation)
+    return PanoSimTransform(new_location, new_rotation)
 
 
 class BaseVehicleTurning(BasicScenario):
@@ -73,7 +71,7 @@ class BaseVehicleTurning(BasicScenario):
         Setup all relevant parameters and create scenario
         """
 
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
         self._ego_route = config.route
@@ -127,17 +125,17 @@ class BaseVehicleTurning(BasicScenario):
 
             # Move to the right
             sidewalk_waypoint = waypoint
-            while sidewalk_waypoint.lane_type != carla.LaneType.Sidewalk:
+            while sidewalk_waypoint.lane_type != PanoSimLaneType.Sidewalk:
                 right_wp = sidewalk_waypoint.get_right_lane()
                 if right_wp is None:
                     break  # No more right lanes
                 sidewalk_waypoint = right_wp
-                if sidewalk_waypoint.lane_type == carla.LaneType.Parking:
+                if sidewalk_waypoint.lane_type == PanoSimLaneType.Parking:
                     parking_location = sidewalk_waypoint.transform.location
 
             # Get the adversary transform and spawn it
             self._adversary_transform = get_sidewalk_transform(sidewalk_waypoint, self._offset)
-            adversary = CarlaDataProvider.request_new_actor('vehicle.diamondback.century', self._adversary_transform)
+            adversary = PanoSimDataProvider.request_new_actor('vehicle.diamondback.century', self._adversary_transform)
             if adversary is None:
                 self._number_of_attempts -= 1
                 move_dist = self._retry_dist
@@ -153,8 +151,8 @@ class BaseVehicleTurning(BasicScenario):
         if parking_location:
             self.parking_slots.append(parking_location)
 
-        if isinstance(adversary, carla.Vehicle):
-            adversary.apply_control(carla.VehicleControl(hand_brake=True))
+        if isinstance(adversary, PanoSimVehicle):
+            adversary.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(adversary)
 
     def _create_behavior(self):
@@ -284,7 +282,7 @@ class VehicleTurningRoutePedestrian(BasicScenario):
         Setup all relevant parameters and create scenario
         """
 
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
         self._ego_route = config.route
@@ -312,12 +310,12 @@ class VehicleTurningRoutePedestrian(BasicScenario):
         # Get the right waypoint at the sidewalk
         same_dir_wps = get_same_dir_lanes(self._collision_wp)
         right_wp = same_dir_wps[0]
-        while right_wp.lane_type != carla.LaneType.Sidewalk:
+        while right_wp.lane_type != PanoSimLaneType.Sidewalk:
             side_wp = right_wp.get_right_lane()
             if side_wp is None:
                 break
             right_wp = side_wp
-            if right_wp.lane_type == carla.LaneType.Parking:
+            if right_wp.lane_type == PanoSimLaneType.Parking:
                 parking_location = right_wp.transform.location
 
         # Get the left waypoint at the sidewalk
@@ -325,23 +323,23 @@ class VehicleTurningRoutePedestrian(BasicScenario):
         if other_dir_wps:
             # With opposite lane
             left_wp = other_dir_wps[-1]
-            while left_wp.lane_type != carla.LaneType.Sidewalk:
+            while left_wp.lane_type != PanoSimLaneType.Sidewalk:
                 side_wp = left_wp.get_right_lane()
                 if side_wp is None:
                     break
                 left_wp = side_wp
-                if left_wp.lane_type == carla.LaneType.Parking:
+                if left_wp.lane_type == PanoSimLaneType.Parking:
                     parking_location = left_wp.transform.location
         else:
             # Without opposite lane
             self._offset['yaw'] = 90
             left_wp = same_dir_wps[-1]
-            while left_wp.lane_type != carla.LaneType.Sidewalk:
+            while left_wp.lane_type != PanoSimLaneType.Sidewalk:
                 side_wp = left_wp.get_left_lane()
                 if side_wp is None:
                     break
                 left_wp = side_wp
-                if left_wp.lane_type == carla.LaneType.Parking:
+                if left_wp.lane_type == PanoSimLaneType.Parking:
                     parking_location = left_wp.transform.location
 
         self._adversary_distance = right_wp.transform.location.distance(left_wp.transform.location)
@@ -353,11 +351,11 @@ class VehicleTurningRoutePedestrian(BasicScenario):
 
         # Get the adversary transform and spawn it
         self._spawn_transform = get_sidewalk_transform(spawn_wp, self._offset)
-        adversary = CarlaDataProvider.request_new_actor('walker.*', self._spawn_transform)
+        adversary = PanoSimDataProvider.request_new_actor('walker.*', self._spawn_transform)
         if adversary is None:
             raise ValueError("Couldn't spawn adversary")
 
-        adversary.set_location(self._spawn_transform.location + carla.Location(z=-200))
+        adversary.set_location(self._spawn_transform.location + PanoSimLocation(z=-200))
         adversary = self._replace_walker(adversary)
 
         if parking_location:
@@ -420,11 +418,11 @@ class VehicleTurningRoutePedestrian(BasicScenario):
         adversary.destroy()
         spawn_transform = self.ego_vehicles[0].get_transform()
         spawn_transform.location.z -= 50
-        adversary = CarlaDataProvider.request_new_actor(type_id, spawn_transform)
+        adversary = PanoSimDataProvider.request_new_actor(type_id, spawn_transform)
         if not adversary:
             raise ValueError("Couldn't spawn the walker substitute")
         adversary.set_simulate_physics(False)
-        adversary.set_location(spawn_transform.location + carla.Location(z=-50))
+        adversary.set_location(spawn_transform.location + PanoSimLocation(z=-50))
         return adversary
 
     def _setup_scenario_trigger(self, config):

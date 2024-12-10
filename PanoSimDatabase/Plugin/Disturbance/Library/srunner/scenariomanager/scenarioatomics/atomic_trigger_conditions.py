@@ -24,12 +24,12 @@ import operator
 import datetime
 import math
 import py_trees
-import carla
 
-from agents.navigation.global_route_planner import GlobalRoutePlanner
+# masked by hupf, for run success
+# from agents.navigation.global_route_planner import GlobalRoutePlanner
 
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import calculate_distance
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicle, PanoSimWalker, PanoSimLaneType, PanoSimLocation
 from srunner.scenariomanager.timer import GameTime
 from srunner.tools.scenario_helper import get_distance_along_route, get_distance_between_actors
 
@@ -89,8 +89,8 @@ class IfTriggerer(AtomicCondition):
         super(IfTriggerer, self).initialise()
 
     def update(self):
-        ego_speed_now = CarlaDataProvider.get_velocity(self.actor_ego)
-        npc_speed_now = CarlaDataProvider.get_velocity(self.actor_npc)
+        ego_speed_now = PanoSimDataProvider.get_velocity(self.actor_ego)
+        npc_speed_now = PanoSimDataProvider.get_velocity(self.actor_npc)
         new_status = py_trees.common.Status.RUNNING
         if self._comparison_operator(ego_speed_now, npc_speed_now):
             new_status = py_trees.common.Status.SUCCESS
@@ -138,8 +138,8 @@ class InTriggerNearCollision(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self._actor)
-        reference_location = CarlaDataProvider.get_location(self._reference_actor)
+        location = PanoSimDataProvider.get_location(self._actor)
+        reference_location = PanoSimDataProvider.get_location(self._reference_actor)
 
         if location is None or reference_location is None:
             return new_status
@@ -182,7 +182,7 @@ class InTriggerDistanceToOSCPosition(AtomicCondition):
         self._distance = distance
         self._along_route = along_route
         self._comparison_operator = comparison_operator
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
 
         if self._along_route:
             # Get the global route planner, used to calculate the route
@@ -206,7 +206,7 @@ class InTriggerDistanceToOSCPosition(AtomicCondition):
 
         if osc_transform is not None:
             osc_location = osc_transform.location
-            actor_location = CarlaDataProvider.get_location(self._actor)
+            actor_location = PanoSimDataProvider.get_location(self._actor)
 
             if self._along_route:
                 # Global planner needs a location at a driving lane
@@ -242,7 +242,7 @@ class InTimeToArrivalToOSCPosition(AtomicCondition):
         Setup parameters
         """
         super(InTimeToArrivalToOSCPosition, self).__init__(name)
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._actor = actor
         self._osc_position = osc_position
         self._time = float(time)
@@ -272,7 +272,7 @@ class InTimeToArrivalToOSCPosition(AtomicCondition):
         except AttributeError:
             return py_trees.common.Status.FAILURE
         target_location = osc_transform.location
-        actor_location = CarlaDataProvider.get_location(self._actor)
+        actor_location = PanoSimDataProvider.get_location(self._actor)
 
         if target_location is None or actor_location is None:
             return new_status
@@ -284,7 +284,7 @@ class InTimeToArrivalToOSCPosition(AtomicCondition):
 
         distance = calculate_distance(actor_location, target_location, self._grp)
 
-        actor_velocity = CarlaDataProvider.get_velocity(self._actor)
+        actor_velocity = PanoSimDataProvider.get_velocity(self._actor)
 
         # time to arrival
         if actor_velocity > 0:
@@ -336,7 +336,7 @@ class StandStill(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        velocity = CarlaDataProvider.get_velocity(self._actor)
+        velocity = PanoSimDataProvider.get_velocity(self._actor)
 
         if velocity > EPSILON:
             self._start_time = GameTime.get_time()
@@ -386,8 +386,8 @@ class RelativeVelocityToOtherActor(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        curr_speed = CarlaDataProvider.get_velocity(self._actor)
-        other_speed = CarlaDataProvider.get_velocity(self._other_actor)
+        curr_speed = PanoSimDataProvider.get_velocity(self._actor)
+        other_speed = PanoSimDataProvider.get_velocity(self._other_actor)
 
         relative_speed = curr_speed - other_speed
 
@@ -433,7 +433,7 @@ class TriggerVelocity(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        actor_speed = CarlaDataProvider.get_velocity(self._actor)
+        actor_speed = PanoSimDataProvider.get_velocity(self._actor)
 
         if self._comparison_operator(actor_speed, self._target_velocity):
             new_status = py_trees.common.Status.SUCCESS
@@ -617,7 +617,7 @@ class InTriggerRegion(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self._actor)
+        location = PanoSimDataProvider.get_location(self._actor)
 
         if location is None:
             return new_status
@@ -633,25 +633,21 @@ class InTriggerRegion(AtomicCondition):
 
 
 class InTriggerDistanceToVehicle(AtomicCondition):
-
     """
-    This class contains the trigger distance (condition) between to actors
-    of a scenario
+    包含场景中两个交通参与物之间的触发距离(条件)
+    重要参数：
+    - actor: 执行行为的PanoSim交通参与物
+    - reference_actor: 引用PanoSim交通参与物
+    - name: 条件名称
+    - distance: 两个参与物之间的触发距离(以米为单位)
+    - distance_type: 指定应如何计算两个参与物之间的距离
+    - freespace: True计算最近边界点之间的真实距离, False将从中心到中心
+    - dx、dy、dz: 到引用位置(引用参与者的位置)的距离
 
-    Important parameters:
-    - actor: CARLA actor to execute the behavior
-    - reference_actor: Reference CARLA actor
-    - name: Name of the condition
-    - distance: Trigger distance between the two actors in meters
-    - distance_type: Specifies how distance should be calculated between the two actors
-    - freespace: if True distance is calculated between closest boundary points else it will be from center-center
-    - dx, dy, dz: distance to reference_location (location of reference_actor)
-
-    The condition terminates with SUCCESS, when the actor reached the target distance to the other actor
+    当参与者到达另一个参与者的目标距离时, 条件以SUCCESS终止
     """
 
-    def __init__(self, reference_actor, actor, distance, comparison_operator=operator.lt,
-                 distance_type="cartesianDistance", freespace=False, name="TriggerDistanceToVehicle"):
+    def __init__(self, reference_actor, actor, distance, comparison_operator=operator.lt, distance_type="cartesianDistance", freespace=False, name="TriggerDistanceToVehicle"):
         """
         Setup trigger distance
         """
@@ -665,7 +661,7 @@ class InTriggerDistanceToVehicle(AtomicCondition):
         self._comparison_operator = comparison_operator
 
         if distance_type == "longitudinal":
-            self._global_rp = CarlaDataProvider.get_global_route_planner()
+            self._global_rp = PanoSimDataProvider.get_global_route_planner()
         else:
             self._global_rp = None
 
@@ -675,14 +671,13 @@ class InTriggerDistanceToVehicle(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self._actor)
-        reference_location = CarlaDataProvider.get_location(self._reference_actor)
+        location = PanoSimDataProvider.get_location(self._actor)
+        reference_location = PanoSimDataProvider.get_location(self._reference_actor)
 
         if location is None or reference_location is None:
             return new_status
 
-        distance = get_distance_between_actors(
-            self._actor, self._reference_actor, self._distance_type, self._freespace, self._global_rp)
+        distance = get_distance_between_actors(self._actor, self._reference_actor, self._distance_type, self._freespace, self._global_rp)
 
         if self._comparison_operator(distance, self._distance):
             new_status = py_trees.common.Status.SUCCESS
@@ -695,8 +690,7 @@ class InTriggerDistanceToVehicle(AtomicCondition):
 class InTriggerDistanceToLocation(AtomicCondition):
 
     """
-    This class contains the trigger (condition) for a distance to a fixed
-    location of a scenario
+    This class contains the trigger (condition) for a distance to a fixed location of a scenario
 
     Important parameters:
     - actor: CARLA actor to execute the behavior
@@ -730,7 +724,7 @@ class InTriggerDistanceToLocation(AtomicCondition):
 
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self._actor)
+        location = PanoSimDataProvider.get_location(self._actor)
 
         if location is None:
             return new_status
@@ -766,7 +760,7 @@ class InTriggerDistanceToNextIntersection(AtomicCondition):
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
         self._actor = actor
         self._distance = distance
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
 
         waypoint = self._map.get_waypoint(self._actor.get_location())
         while waypoint and not waypoint.is_intersection:
@@ -780,7 +774,7 @@ class InTriggerDistanceToNextIntersection(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        current_waypoint = self._map.get_waypoint(CarlaDataProvider.get_location(self._actor))
+        current_waypoint = self._map.get_waypoint(PanoSimDataProvider.get_location(self._actor))
         distance = calculate_distance(current_waypoint.transform.location, self._final_location)
 
         if distance < self._distance:
@@ -813,7 +807,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicCondition):
         Setup class members
         """
         super(InTriggerDistanceToLocationAlongRoute, self).__init__(name)
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._actor = actor
         self._location = location
         self._route = route
@@ -824,7 +818,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicCondition):
     def update(self):
         new_status = py_trees.common.Status.RUNNING
 
-        current_location = CarlaDataProvider.get_location(self._actor)
+        current_location = PanoSimDataProvider.get_location(self._actor)
 
         if current_location is None:
             return new_status
@@ -845,8 +839,7 @@ class InTriggerDistanceToLocationAlongRoute(AtomicCondition):
 class InTimeToArrivalToLocation(AtomicCondition):
 
     """
-    This class contains a check if a actor arrives within a given time
-    at a given location.
+    This class contains a check if a actor arrives within a given time at a given location.
 
     Important parameters:
     - actor: CARLA actor to execute the behavior
@@ -876,13 +869,13 @@ class InTimeToArrivalToLocation(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        current_location = CarlaDataProvider.get_location(self._actor)
+        current_location = PanoSimDataProvider.get_location(self._actor)
 
         if current_location is None:
             return new_status
 
         distance = calculate_distance(current_location, self._target_location)
-        velocity = CarlaDataProvider.get_velocity(self._actor)
+        velocity = PanoSimDataProvider.get_velocity(self._actor)
 
         # if velocity is too small, simply use a large time to arrival
         time_to_arrival = self._max_time_to_arrival
@@ -921,7 +914,7 @@ class InTimeToArrivalToVehicle(AtomicCondition):
         """
         super(InTimeToArrivalToVehicle, self).__init__(name)
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._actor = actor
         self._other_actor = other_actor
         self._time = time
@@ -941,18 +934,18 @@ class InTimeToArrivalToVehicle(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        current_location = CarlaDataProvider.get_location(self._actor)
-        other_location = CarlaDataProvider.get_location(self._other_actor)
+        current_location = PanoSimDataProvider.get_location(self._actor)
+        other_location = PanoSimDataProvider.get_location(self._other_actor)
 
         # Get the bounding boxes
         if self._condition_freespace:
-            if isinstance(self._actor, (carla.Vehicle, carla.Walker)):
+            if isinstance(self._actor, (PanoSimVehicle, PanoSimWalker)):
                 actor_extent = self._actor.bounding_box.extent.x
             else:
                 # Patch, as currently static objects have no bounding boxes
                 actor_extent = 0
 
-            if isinstance(self._other_actor, (carla.Vehicle, carla.Walker)):
+            if isinstance(self._other_actor, (PanoSimVehicle, PanoSimWalker)):
                 other_extent = self._other_actor.bounding_box.extent.x
             else:
                 # Patch, as currently static objects have no bounding boxes
@@ -961,8 +954,8 @@ class InTimeToArrivalToVehicle(AtomicCondition):
         if current_location is None or other_location is None:
             return new_status
 
-        current_velocity = CarlaDataProvider.get_velocity(self._actor)
-        other_velocity = CarlaDataProvider.get_velocity(self._other_actor)
+        current_velocity = PanoSimDataProvider.get_velocity(self._actor)
+        other_velocity = PanoSimDataProvider.get_velocity(self._other_actor)
 
         if self._along_route:
             # Global planner needs a location at a driving lane
@@ -1014,8 +1007,8 @@ class InTimeToArrivalToVehicleSideLane(InTimeToArrivalToLocation):
         self._other_actor = other_actor
         self._side_lane = side_lane
 
-        self._world = CarlaDataProvider.get_world()
-        self._map = CarlaDataProvider.get_map(self._world)
+        self._world = PanoSimDataProvider.get_world()
+        self._map = PanoSimDataProvider.get_map(self._world)
 
         other_location = other_actor.get_transform().location
         other_waypoint = self._map.get_waypoint(other_location)
@@ -1039,7 +1032,7 @@ class InTimeToArrivalToVehicleSideLane(InTimeToArrivalToLocation):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        other_location = CarlaDataProvider.get_location(self._other_actor)
+        other_location = PanoSimDataProvider.get_location(self._other_actor)
         other_waypoint = self._map.get_waypoint(other_location)
 
         if self._side_lane == 'right':
@@ -1085,8 +1078,8 @@ class WaitUntilInFront(AtomicCondition):
         self._factor = max(EPSILON, factor)  # Must be > 0
         self._check_distance = check_distance
 
-        self._world = CarlaDataProvider.get_world()
-        self._map = CarlaDataProvider.get_map(self._world)
+        self._world = PanoSimDataProvider.get_world()
+        self._map = PanoSimDataProvider.get_map(self._world)
 
         actor_extent = self._actor.bounding_box.extent.x
         other_extent = self._other_actor.bounding_box.extent.x
@@ -1104,12 +1097,12 @@ class WaitUntilInFront(AtomicCondition):
         close_by = False
 
         # Location of our actor
-        actor_location = CarlaDataProvider.get_location(self._actor)
+        actor_location = PanoSimDataProvider.get_location(self._actor)
         if actor_location is None:
             return new_status
 
         # Waypoint in front of the other actor
-        other_location = CarlaDataProvider.get_location(self._other_actor)
+        other_location = PanoSimDataProvider.get_location(self._other_actor)
         other_waypoint = self._map.get_waypoint(other_location)
         if other_waypoint is None:
             return new_status
@@ -1169,7 +1162,7 @@ class WaitUntilInFrontPosition(AtomicCondition):
         new_status = py_trees.common.Status.RUNNING
 
         # Is the actor in front?
-        location = CarlaDataProvider.get_location(self._actor)
+        location = PanoSimDataProvider.get_location(self._actor)
         if location is None:
             return new_status
 
@@ -1191,13 +1184,13 @@ class WaitUntilInFrontPosition(AtomicCondition):
 class DriveDistance(AtomicCondition):
 
     """
-    This class contains an atomic behavior to drive a certain distance.
+    此类包含一个原子行为, 用于行驶一定距离
 
-    Important parameters:
-    - actor: CARLA actor to execute the condition
-    - distance: Distance for this condition in meters
+    重要参数：
+    - actor: 执行条件的PanoSim参与者
+    - distance: 此条件的距离(以米为单位)
 
-    The condition terminates with SUCCESS, when the actor drove at least the given distance
+    当参与者行驶到给定距离时, 条件以SUCCESS终止
     """
 
     def __init__(self, actor, distance, name="DriveDistance"):
@@ -1212,7 +1205,7 @@ class DriveDistance(AtomicCondition):
         self._actor = actor
 
     def initialise(self):
-        self._location = CarlaDataProvider.get_location(self._actor)
+        self._location = PanoSimDataProvider.get_location(self._actor)
         super(DriveDistance, self).initialise()
 
     def update(self):
@@ -1224,8 +1217,9 @@ class DriveDistance(AtomicCondition):
         if self._location is None:
             return new_status
 
-        new_location = CarlaDataProvider.get_location(self._actor)
+        new_location = PanoSimDataProvider.get_location(self._actor)
         self._distance += calculate_distance(self._location, new_location)
+        self.logger.debug("{}, {}, {}".format(self.__class__.__name__, self._distance, self._target_distance))
         self._location = new_location
 
         if self._distance > self._target_distance:
@@ -1253,7 +1247,7 @@ class AtRightmostLane(AtomicCondition):
         super(AtRightmostLane, self).__init__(name)
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
         self._actor = actor
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
 
     def update(self):
         """
@@ -1261,7 +1255,7 @@ class AtRightmostLane(AtomicCondition):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self._actor)
+        location = PanoSimDataProvider.get_location(self._actor)
         waypoint = self._map.get_waypoint(location)
         if waypoint is None:
             return new_status
@@ -1270,7 +1264,7 @@ class AtRightmostLane(AtomicCondition):
             return new_status
         lane_type = right_waypoint.lane_type
 
-        if lane_type != carla.LaneType.Driving:
+        if lane_type != PanoSimLaneType.Driving:
             new_status = py_trees.common.Status.SUCCESS
 
         self.logger.debug("%s.update()[%s->%s]" % (self.__class__.__name__, self.status, new_status))
@@ -1347,7 +1341,7 @@ class WaitForTrafficLightControllerState(AtomicCondition):
 
     def initialise(self):
 
-        self._actor = CarlaDataProvider.get_world().get_traffic_light_from_opendrive_id(self.actor_id)
+        self._actor = PanoSimDataProvider.get_world().get_traffic_light_from_opendrive_id(self.actor_id)
         if self._actor is None:
             return py_trees.common.Status.FAILURE
 
@@ -1403,8 +1397,8 @@ class WaitEndIntersection(AtomicCondition):
 
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self.actor)
-        waypoint = CarlaDataProvider.get_map().get_waypoint(location)
+        location = PanoSimDataProvider.get_location(self.actor)
+        waypoint = PanoSimDataProvider.get_map().get_waypoint(location)
 
         # Wait for the actor to enter a / the junction
         if not self._inside_junction:
@@ -1432,8 +1426,7 @@ class WaitForBlackboardVariable(AtomicCondition):
     It also initially sets the variable to a given value, if given
     """
 
-    def __init__(self, variable_name, variable_value, var_init_value=None,
-                 debug=False, name="WaitForBlackboardVariable"):
+    def __init__(self, variable_name, variable_value, var_init_value=None, debug=False, name="WaitForBlackboardVariable"):
         super(WaitForBlackboardVariable, self).__init__(name)
         self._debug = debug
         self._variable_name = variable_name
@@ -1476,7 +1469,7 @@ class CheckParameter(AtomicCondition):
         keeps comparing global osc value with given value till it is successful.
         """
         new_status = py_trees.common.Status.RUNNING
-        current_value = CarlaDataProvider.get_osc_global_param_value(self._parameter_ref)
+        current_value = PanoSimDataProvider.get_osc_global_param_value(self._parameter_ref)
         if self._comparison_operator(current_value, self._value):
             new_status = py_trees.common.Status.SUCCESS
 

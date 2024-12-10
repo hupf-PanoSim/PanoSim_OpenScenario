@@ -13,9 +13,7 @@ from __future__ import print_function
 
 import py_trees
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLaneType, PanoSimTrafficLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import ActorFlow, TrafficLightFreezer, ScenarioTimeout
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest, ScenarioTimeoutTest
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitEndIntersection, DriveDistance
@@ -57,7 +55,7 @@ class JunctionRightTurn(BasicScenario):
         Setup all relevant parameters and create scenario
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._direction = 'left'
@@ -88,7 +86,7 @@ class JunctionRightTurn(BasicScenario):
         Custom initialization
         """
         ego_location = config.trigger_points[0].location
-        self._ego_wp = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._ego_wp = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         # Get the junction
         starting_wp = self._ego_wp
@@ -111,7 +109,7 @@ class JunctionRightTurn(BasicScenario):
         source_entry_wp = source_entry_wps[0]
         while True:
             right_wp = source_entry_wp.get_right_lane()
-            if not right_wp or right_wp.lane_type != carla.LaneType.Driving:
+            if not right_wp or right_wp.lane_type != PanoSimLaneType.Driving:
                 break
             source_entry_wp = right_wp
 
@@ -178,14 +176,14 @@ class SignalizedJunctionRightTurn(JunctionRightTurn):
 
         for tl in tls:
             if tl.id == ego_tl.id:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Green
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Green
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
             elif tl.id == source_tl.id:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Green
-                self._init_tl_dict[tl] = carla.TrafficLightState.Green
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Green
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Green
             else:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Red
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Red
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
 
     def _create_behavior(self):
         """

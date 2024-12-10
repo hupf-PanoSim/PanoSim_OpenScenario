@@ -20,12 +20,9 @@ import traceback
 import py_trees
 
 from numpy import random
-import carla
-
-from agents.navigation.local_planner import RoadOption
 
 from srunner.scenarioconfigs.scenario_configuration import ActorConfigurationData
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimColor, PanoSimRoadOption
 
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import ScenarioTriggerer, Idle
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitForBlackboardVariable
@@ -84,7 +81,7 @@ class RouteScenario(BasicScenario):
     def _get_route(self, config):
         """
         Gets the route from the configuration, interpolating it to the desired density,
-        saving it to the CarlaDataProvider and sending it to the agent
+        saving it to the PanoSimDataProvider and sending it to the agent
 
         Parameters:
         - world: CARLA world
@@ -122,9 +119,7 @@ class RouteScenario(BasicScenario):
         elevate_transform = self.route[0][0]
         elevate_transform.location.z += 0.5
 
-        ego_vehicle = CarlaDataProvider.request_new_actor('vehicle.lincoln.mkz_2017',
-                                                          elevate_transform,
-                                                          rolename='hero')
+        ego_vehicle = PanoSimDataProvider.request_new_actor('vehicle.lincoln.mkz_2017', elevate_transform, rolename='hero')
 
         return ego_vehicle
 
@@ -150,27 +145,27 @@ class RouteScenario(BasicScenario):
             if i % downsample != 0:
                 continue
 
-            wp = w[0].location + carla.Location(z=vertical_shift)
+            wp = w[0].location + PanoSimLocation(z=vertical_shift)
 
-            if w[1] == RoadOption.LEFT:  # Yellow
-                color = carla.Color(128, 128, 0)
-            elif w[1] == RoadOption.RIGHT:  # Cyan
-                color = carla.Color(0, 128, 128)
-            elif w[1] == RoadOption.CHANGELANELEFT:  # Orange
-                color = carla.Color(128, 32, 0)
-            elif w[1] == RoadOption.CHANGELANERIGHT:  # Dark Cyan
-                color = carla.Color(0, 32, 128)
-            elif w[1] == RoadOption.STRAIGHT:  # Gray
-                color = carla.Color(64, 64, 64)
+            if w[1] == PanoSimRoadOption.LEFT:  # Yellow
+                color = PanoSimColor(128, 128, 0)
+            elif w[1] == PanoSimRoadOption.RIGHT:  # Cyan
+                color = PanoSimColor(0, 128, 128)
+            elif w[1] == PanoSimRoadOption.CHANGELANELEFT:  # Orange
+                color = PanoSimColor(128, 32, 0)
+            elif w[1] == PanoSimRoadOption.CHANGELANERIGHT:  # Dark Cyan
+                color = PanoSimColor(0, 32, 128)
+            elif w[1] == PanoSimRoadOption.STRAIGHT:  # Gray
+                color = PanoSimColor(64, 64, 64)
             else:  # LANEFOLLOW
-                color = carla.Color(0, 128, 0)  # Green
+                color = PanoSimColor(0, 128, 0)  # Green
 
             world.debug.draw_point(wp, size=0.1, color=color, life_time=persistency)
 
-        world.debug.draw_point(waypoints[0][0].location + carla.Location(z=vertical_shift), size=2*size,
-                               color=carla.Color(0, 0, 128), life_time=persistency)
-        world.debug.draw_point(waypoints[-1][0].location + carla.Location(z=vertical_shift), size=2*size,
-                               color=carla.Color(128, 128, 128), life_time=persistency)
+        world.debug.draw_point(waypoints[0][0].location + PanoSimLocation(z=vertical_shift), size=2*size,
+                               color=PanoSimColor(0, 0, 128), life_time=persistency)
+        world.debug.draw_point(waypoints[-1][0].location + PanoSimLocation(z=vertical_shift), size=2*size,
+                               color=PanoSimColor(128, 128, 128), life_time=persistency)
 
     def _scenario_sampling(self, potential_scenarios, random_seed=0):
         """Sample the scenarios that are going to happen for this route."""
@@ -215,13 +210,13 @@ class RouteScenario(BasicScenario):
         ego_data = ActorConfigurationData(ego_vehicle.type_id, ego_vehicle.get_transform(), 'hero')
 
         if debug:
-            tmap = CarlaDataProvider.get_map()
+            tmap = PanoSimDataProvider.get_map()
             for scenario_config in scenario_definitions:
                 scenario_loc = scenario_config.trigger_points[0].location
-                debug_loc = tmap.get_waypoint(scenario_loc).transform.location + carla.Location(z=0.2)
-                world.debug.draw_point(debug_loc, size=0.2, color=carla.Color(128, 0, 0), life_time=timeout)
+                debug_loc = tmap.get_waypoint(scenario_loc).transform.location + PanoSimLocation(z=0.2)
+                world.debug.draw_point(debug_loc, size=0.2, color=PanoSimColor(128, 0, 0), life_time=timeout)
                 world.debug.draw_string(debug_loc, str(scenario_config.name), draw_shadow=False,
-                                        color=carla.Color(0, 0, 128), life_time=timeout, persistent_lines=True)
+                                        color=PanoSimColor(0, 0, 128), life_time=timeout, persistent_lines=True)
 
         for scenario_number, scenario_config in enumerate(scenario_definitions):
             scenario_config.ego_vehicles = [ego_data]

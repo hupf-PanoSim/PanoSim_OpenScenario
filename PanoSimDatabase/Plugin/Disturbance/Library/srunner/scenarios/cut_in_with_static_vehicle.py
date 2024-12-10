@@ -9,11 +9,10 @@
 from __future__ import print_function
 
 import py_trees
-import carla
 
 from agents.navigation.local_planner import RoadOption
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleControl, PanoSimLocation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       BatchActorTransformSetter,
                                                                       CutIn,
@@ -44,7 +43,7 @@ class StaticCutIn(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._trigger_location = config.trigger_points[0].location
@@ -103,16 +102,16 @@ class StaticCutIn(BasicScenario):
                 self._side_wp = side_wp
 
             # Spawn the actor
-            blocker_actor = CarlaDataProvider.request_new_actor(
+            blocker_actor = PanoSimDataProvider.request_new_actor(
                 'vehicle.*', side_wp.transform, 'scenario', attribute_filter=self._attributes)
             if not blocker_actor:
                 for actor in self.other_actors:
                     actor.destroy()
                 raise ValueError("Couldn't spawn an actor")
-            blocker_actor.apply_control(carla.VehicleControl(hand_brake=True))
+            blocker_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
 
             blocker_actor.set_simulate_physics(False)
-            blocker_actor.set_location(side_wp.transform.location + carla.Location(z=-500))
+            blocker_actor.set_location(side_wp.transform.location + PanoSimLocation(z=-500))
             self._side_transforms.append([blocker_actor, side_wp.transform])
             self.other_actors.append(blocker_actor)
 
@@ -147,7 +146,7 @@ class StaticCutIn(BasicScenario):
                 actor.destroy()
             raise ValueError("Couldn't find a proper position for the cut in vehicle")
 
-        self._adversary_actor = CarlaDataProvider.request_new_actor(
+        self._adversary_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', side_wp.transform, 'scenario', attribute_filter=self._attributes)
         if not self._adversary_actor:
             for actor in self.other_actors:
@@ -155,12 +154,12 @@ class StaticCutIn(BasicScenario):
             raise ValueError("Couldn't spawn an actor")
 
         self._adversary_actor.set_simulate_physics(False)
-        self._adversary_actor.set_location(side_wp.transform.location + carla.Location(z=-500))
+        self._adversary_actor.set_location(side_wp.transform.location + PanoSimLocation(z=-500))
         self._side_transforms.append([self._adversary_actor, side_wp.transform])
         self.other_actors.append(self._adversary_actor)
 
-        # This starts the engine, to allow the adversary to instantly move 
-        self._adversary_actor.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0)) 
+        # This starts the engine, to allow the adversary to instantly move
+        self._adversary_actor.apply_control(PanoSimVehicleControl(throttle=1.0, brake=1.0))
 
         # Move to the front
         next_wps = blocker_wp.next(self._vehicle_gap)
@@ -180,16 +179,16 @@ class StaticCutIn(BasicScenario):
                 raise ValueError("Couldn't find a proper position for the cut in vehicle")
 
             # Spawn the actor
-            blocker_actor = CarlaDataProvider.request_new_actor(
+            blocker_actor = PanoSimDataProvider.request_new_actor(
                 'vehicle.*', side_wp.transform, 'scenario', attribute_filter=self._attributes)
             if not blocker_actor:
                 for actor in self.other_actors:
                     actor.destroy()
                 raise ValueError("Couldn't spawn an actor")
-            blocker_actor.apply_control(carla.VehicleControl(hand_brake=True))
+            blocker_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
 
             blocker_actor.set_simulate_physics(False)
-            blocker_actor.set_location(side_wp.transform.location + carla.Location(z=-500))
+            blocker_actor.set_location(side_wp.transform.location + PanoSimLocation(z=-500))
             self._side_transforms.append([blocker_actor, side_wp.transform])
             self.other_actors.append(blocker_actor)
 

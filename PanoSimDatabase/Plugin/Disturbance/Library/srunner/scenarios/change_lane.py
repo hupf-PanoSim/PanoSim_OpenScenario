@@ -19,9 +19,8 @@ The ego vehicle adjusts its velocity or changes the lane as well.
 
 import random
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTransform, PanoSimLocation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       StopVehicle,
                                                                       LaneChange,
@@ -55,7 +54,7 @@ class ChangeLane(BasicScenario):
         If randomize is True, the scenario parameters are randomized
         """
         self.timeout = timeout
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
 
         self._fast_vehicle_velocity = 70
@@ -86,15 +85,15 @@ class ChangeLane(BasicScenario):
 
         # add actors from xml file
         for actor in config.other_actors:
-            vehicle = CarlaDataProvider.request_new_actor(actor.model, actor.transform)
+            vehicle = PanoSimDataProvider.request_new_actor(actor.model, actor.transform)
             self.other_actors.append(vehicle)
             vehicle.set_simulate_physics(enabled=False)
 
         # fast vehicle, tesla
         # transform visible
         fast_car_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._fast_vehicle_distance)
-        self.fast_car_visible = carla.Transform(
-            carla.Location(fast_car_waypoint.transform.location.x,
+        self.fast_car_visible = PanoSimTransform(
+            PanoSimLocation(fast_car_waypoint.transform.location.x,
                            fast_car_waypoint.transform.location.y,
                            fast_car_waypoint.transform.location.z + 1),
             fast_car_waypoint.transform.rotation)
@@ -102,8 +101,8 @@ class ChangeLane(BasicScenario):
         # slow vehicle, vw
         # transform visible
         slow_car_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._slow_vehicle_distance)
-        self.slow_car_visible = carla.Transform(
-            carla.Location(slow_car_waypoint.transform.location.x,
+        self.slow_car_visible = PanoSimTransform(
+            PanoSimLocation(slow_car_waypoint.transform.location.x,
                            slow_car_waypoint.transform.location.y,
                            slow_car_waypoint.transform.location.z),
             slow_car_waypoint.transform.rotation)

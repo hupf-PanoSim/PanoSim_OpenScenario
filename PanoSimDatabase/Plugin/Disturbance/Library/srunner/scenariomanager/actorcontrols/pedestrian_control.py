@@ -11,7 +11,7 @@ This module provides an example control for pedestrians
 
 import math
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimWalker
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 
@@ -26,7 +26,7 @@ class PedestrianControl(BasicControl):
     """
 
     def __init__(self, actor, args=None):
-        if not isinstance(actor, carla.Walker):
+        if not isinstance(actor, PanoSimWalker):
             raise RuntimeError("PedestrianControl: The to be controlled actor is not a pedestrian")
 
         super(PedestrianControl, self).__init__(actor)

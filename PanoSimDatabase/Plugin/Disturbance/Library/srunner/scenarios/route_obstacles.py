@@ -13,9 +13,8 @@ priority, e.g. by running a red traffic light.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleLightState, PanoSimLaneType, PanoSimLocation, PanoSimVehicleControl
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       SwitchWrongDirectionTest,
                                                                       BasicAgentBehavior,
@@ -63,9 +62,9 @@ class Accident(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
-        
+
         self._first_distance = 10
         self._second_distance = 6
 
@@ -74,7 +73,7 @@ class Accident(BasicScenario):
         self._wait_duration = 5
         self._offset = 0.6
 
-        self._lights = carla.VehicleLightState.Special1 | carla.VehicleLightState.Special2 | carla.VehicleLightState.Position
+        self._lights = PanoSimVehicleLightState.Special1 | PanoSimVehicleLightState.Special2 | PanoSimVehicleLightState.Position
 
         self._distance = get_value_parameter(config, 'distance', float, 120)
         self._direction = get_value_parameter(config, 'direction', str, 'right')
@@ -106,7 +105,7 @@ class Accident(BasicScenario):
                 wp = prop_wp.get_right_lane()
             else:
                 wp = prop_wp.get_left_lane()
-            if wp is None or wp.lane_type not in (carla.LaneType.Driving, carla.LaneType.Parking):
+            if wp is None or wp.lane_type not in (PanoSimLaneType.Driving, PanoSimLaneType.Parking):
                 break
             prop_wp = wp
 
@@ -116,9 +115,9 @@ class Accident(BasicScenario):
             r_vec *= -1
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
         spawn_transform.rotation.yaw += 90
-        signal_prop = CarlaDataProvider.request_new_actor('static.prop.warningaccident', spawn_transform)
+        signal_prop = PanoSimDataProvider.request_new_actor('static.prop.warningaccident', spawn_transform)
         if not signal_prop:
             raise ValueError("Couldn't spawn the indication prop asset")
         signal_prop.set_simulate_physics(False)
@@ -134,13 +133,11 @@ class Accident(BasicScenario):
             r_vec *= -1
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
         if accident_actor:
-            actor = CarlaDataProvider.request_new_actor(
-                blueprint, spawn_transform, rolename='scenario no lights', attribute_filter={'base_type': 'car', 'generation': 2})
+            actor = PanoSimDataProvider.request_new_actor(blueprint, spawn_transform, rolename='scenario no lights', attribute_filter={'base_type': 'car', 'generation': 2})
         else:
-            actor = CarlaDataProvider.request_new_actor(
-                blueprint, spawn_transform, rolename='scenario')
+            actor = PanoSimDataProvider.request_new_actor(blueprint, spawn_transform, rolename='scenario')
         if not actor:
             raise ValueError("Couldn't spawn an obstacle actor")
 
@@ -162,8 +159,8 @@ class Accident(BasicScenario):
         # Set its initial conditions
         lights = police_car.get_light_state()
         lights |= self._lights
-        police_car.set_light_state(carla.VehicleLightState(lights))
-        police_car.apply_control(carla.VehicleControl(hand_brake=True))
+        police_car.set_light_state(PanoSimVehicleLightState(lights))
+        police_car.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(police_car)
 
         # Create the first vehicle that has been in the accident
@@ -171,7 +168,7 @@ class Accident(BasicScenario):
         first_actor = self._spawn_obstacle(self._first_vehicle_wp, 'vehicle.*', True)
 
         # Set its initial conditions
-        first_actor.apply_control(carla.VehicleControl(hand_brake=True))
+        first_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(first_actor)
 
         # Create the second vehicle that has been in the accident
@@ -182,7 +179,7 @@ class Accident(BasicScenario):
         self._end_wp = self._move_waypoint_forward(second_vehicle_wp, self._end_distance)
 
         # Set its initial conditions
-        second_actor.apply_control(carla.VehicleControl(hand_brake=True))
+        second_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(second_actor)
 
     def _create_behavior(self):
@@ -294,7 +291,7 @@ class ParkedObstacle(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._trigger_distance = 50
@@ -302,7 +299,7 @@ class ParkedObstacle(BasicScenario):
         self._wait_duration = 5
         self._offset = 0.7
 
-        self._lights = carla.VehicleLightState.RightBlinker | carla.VehicleLightState.LeftBlinker | carla.VehicleLightState.Position
+        self._lights = PanoSimVehicleLightState.RightBlinker | PanoSimVehicleLightState.LeftBlinker | PanoSimVehicleLightState.Position
 
         self._distance = get_value_parameter(config, 'distance', float, 120)
         self._direction = get_value_parameter(config, 'direction', str, 'right')
@@ -334,7 +331,7 @@ class ParkedObstacle(BasicScenario):
                 wp = prop_wp.get_right_lane()
             else:
                 wp = prop_wp.get_left_lane()
-            if wp is None or wp.lane_type not in (carla.LaneType.Driving, carla.LaneType.Parking):
+            if wp is None or wp.lane_type not in (PanoSimLaneType.Driving, PanoSimLaneType.Parking):
                 break
             prop_wp = wp
 
@@ -344,9 +341,9 @@ class ParkedObstacle(BasicScenario):
             r_vec *= -1
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
         spawn_transform.rotation.yaw += 90
-        signal_prop = CarlaDataProvider.request_new_actor('static.prop.warningaccident', spawn_transform)
+        signal_prop = PanoSimDataProvider.request_new_actor('static.prop.warningaccident', spawn_transform)
         if not signal_prop:
             raise ValueError("Couldn't spawn the indication prop asset")
         signal_prop.set_simulate_physics(False)
@@ -362,9 +359,8 @@ class ParkedObstacle(BasicScenario):
             r_vec *= -1
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
-        actor = CarlaDataProvider.request_new_actor(
-            blueprint, spawn_transform, rolename='scenario no lights', attribute_filter={'base_type': 'car', 'generation': 2})
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
+        actor = PanoSimDataProvider.request_new_actor(blueprint, spawn_transform, rolename='scenario no lights', attribute_filter={'base_type': 'car', 'generation': 2})
         if not actor:
             raise ValueError("Couldn't spawn an obstacle actor")
 
@@ -385,8 +381,8 @@ class ParkedObstacle(BasicScenario):
 
         lights = parked_actor.get_light_state()
         lights |= self._lights
-        parked_actor.set_light_state(carla.VehicleLightState(lights))
-        parked_actor.apply_control(carla.VehicleControl(hand_brake=True))
+        parked_actor.set_light_state(PanoSimVehicleLightState(lights))
+        parked_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(parked_actor)
 
         self._end_wp = self._move_waypoint_forward(self._vehicle_wp, self._end_distance)
@@ -500,7 +496,7 @@ class HazardAtSideLane(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._obstacle_distance = 9
@@ -548,8 +544,8 @@ class HazardAtSideLane(BasicScenario):
         r_vec = wp.transform.get_right_vector()
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
-        actor = CarlaDataProvider.request_new_actor(blueprint, spawn_transform)
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=1)
+        actor = PanoSimDataProvider.request_new_actor(blueprint, spawn_transform)
         if not actor:
             raise ValueError("Couldn't spawn an obstacle actor")
 
@@ -559,7 +555,7 @@ class HazardAtSideLane(BasicScenario):
         """
         Custom initialization
         """
-        rng = CarlaDataProvider.get_random_seed()
+        rng = PanoSimDataProvider.get_random_seed()
         self._starting_wp = self._map.get_waypoint(config.trigger_points[0].location)
 
         # Spawn the first bicycle
@@ -572,7 +568,7 @@ class HazardAtSideLane(BasicScenario):
         self._target_locs.append(wps[0].transform.location)
 
         # Set its initial conditions
-        bicycle_1.apply_control(carla.VehicleControl(hand_brake=True))
+        bicycle_1.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(bicycle_1)
 
         # Spawn the second bicycle
@@ -585,7 +581,7 @@ class HazardAtSideLane(BasicScenario):
         self._target_locs.append(wps[0].transform.location)
 
         # Set its initial conditions
-        bicycle_2.apply_control(carla.VehicleControl(hand_brake=True))
+        bicycle_2.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(bicycle_2)
 
     def _create_behavior(self):

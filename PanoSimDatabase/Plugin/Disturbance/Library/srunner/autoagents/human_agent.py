@@ -26,8 +26,7 @@ try:
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
-import carla
-
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl
 from srunner.autoagents.autonomous_agent import AutonomousAgent
 
 
@@ -146,7 +145,7 @@ class KeyboardControl(object):
         """
         Init
         """
-        self._control = carla.VehicleControl()
+        self._control = PanoSimVehicleControl()
         self._steer_cache = 0.0
         self._clock = pygame.time.Clock()
 
@@ -179,12 +178,12 @@ class KeyboardControl(object):
 
     def _json_to_control(self):
         """
-        Parses the json file into a list of carla.VehicleControl
+        Parses the json file into a list of PanoSimVehicleControl
         """
 
         # transform strs into VehicleControl commands
         for entry in self._records['records']:
-            control = carla.VehicleControl(throttle=entry['control']['throttle'],
+            control = PanoSimVehicleControl(throttle=entry['control']['throttle'],
                                            steer=entry['control']['steer'],
                                            brake=entry['control']['brake'],
                                            hand_brake=entry['control']['hand_brake'],

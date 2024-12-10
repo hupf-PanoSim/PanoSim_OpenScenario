@@ -9,7 +9,7 @@ from enum import Enum
 from collections import deque
 import random
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl
 from agents.navigation.controller import VehiclePIDController
 from agents.tools.misc import draw_waypoints, get_speed
 
@@ -244,7 +244,7 @@ class LocalPlanner(object):
 
         # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
         if len(self._waypoints_queue) == 0:
-            control = carla.VehicleControl()
+            control = PanoSimVehicleControl()
             control.steer = 0.0
             control.throttle = 0.0
             control.brake = 1.0

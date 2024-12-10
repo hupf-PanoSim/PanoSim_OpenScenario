@@ -20,8 +20,6 @@ except ImportError:
 
 import numpy as np
 
-import carla
-
 
 class SensorReceivedNoData(Exception):
 

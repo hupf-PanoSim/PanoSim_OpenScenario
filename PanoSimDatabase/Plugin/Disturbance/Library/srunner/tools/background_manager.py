@@ -12,7 +12,7 @@ removing its interference with other scenarios
 import py_trees
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import AtomicBehavior
 from srunner.scenariomanager.timer import GameTime
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider
 
 
 class ChangeRoadBehavior(AtomicBehavior):

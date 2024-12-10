@@ -11,9 +11,8 @@ Scenario with low visibility, the ego performs a turn only to find out that the 
 
 from __future__ import print_function
 
-import carla
 import py_trees
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimVehicleLightState
 
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       Idle,
@@ -33,7 +32,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -54,7 +53,7 @@ class BlockedIntersection(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._trigger_location = config.trigger_points[0].location
@@ -85,7 +84,7 @@ class BlockedIntersection(BasicScenario):
         self._blocker_transform = waypoint.transform
 
         # Spawn the blocker vehicle
-        blocker = CarlaDataProvider.request_new_actor(
+        blocker = PanoSimDataProvider.request_new_actor(
             "vehicle.*.*", self._blocker_transform,
             attribute_filter={'base_type': 'car', 'has_lights': True, 'special_type': ''}
         )
@@ -94,11 +93,11 @@ class BlockedIntersection(BasicScenario):
         self.other_actors.append(blocker)
 
         blocker.set_simulate_physics(False)
-        blocker.set_location(self._blocker_transform.location + carla.Location(z=-200))
+        blocker.set_location(self._blocker_transform.location + PanoSimLocation(z=-200))
 
         lights = blocker.get_light_state()
-        lights |= carla.VehicleLightState.Brake
-        blocker.set_light_state(carla.VehicleLightState(lights))
+        lights |= PanoSimVehicleLightState.Brake
+        blocker.set_light_state(PanoSimVehicleLightState(lights))
 
     def _create_behavior(self):
         """

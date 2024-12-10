@@ -9,12 +9,12 @@ waypoints and avoiding other vehicles. The agent also responds to traffic lights
 It can also make use of the global route planner to follow a specifed route
 """
 
-import carla
 from enum import Enum
 
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.tools.misc import get_speed, is_within_distance, get_trafficlight_trigger_location
+from srunner.scenariomanager.data_provider import PanoSimLocation, PanoSimTrafficLightState
 
 
 class BasicAgent(object):
@@ -217,7 +217,7 @@ class BasicAgent(object):
             max_distance = self._base_tlight_threshold
 
         if self._last_traffic_light:
-            if self._last_traffic_light.state != carla.TrafficLightState.Red:
+            if self._last_traffic_light.state != PanoSimTrafficLightState.Red:
                 self._last_traffic_light = None
             else:
                 return (True, self._last_traffic_light)
@@ -239,7 +239,7 @@ class BasicAgent(object):
             if dot_ve_wp < 0:
                 continue
 
-            if traffic_light.state != carla.TrafficLightState.Red:
+            if traffic_light.state != PanoSimTrafficLightState.Red:
                 continue
 
             if is_within_distance(object_waypoint.transform, self._vehicle.get_transform(), max_distance, [0, 90]):
@@ -273,7 +273,7 @@ class BasicAgent(object):
         ego_forward_vector = ego_transform.get_forward_vector()
         ego_extent = self._vehicle.bounding_box.extent.x
         ego_front_transform = ego_transform
-        ego_front_transform.location += carla.Location(
+        ego_front_transform.location += PanoSimLocation(
             x=ego_extent * ego_forward_vector.x,
             y=ego_extent * ego_forward_vector.y,
         )
@@ -291,7 +291,7 @@ class BasicAgent(object):
             target_forward_vector = target_transform.get_forward_vector()
             target_extent = target_vehicle.bounding_box.extent.x
             target_rear_transform = target_transform
-            target_rear_transform.location -= carla.Location(
+            target_rear_transform.location -= PanoSimLocation(
                 x=target_extent * target_forward_vector.x,
                 y=target_extent * target_forward_vector.y,
             )

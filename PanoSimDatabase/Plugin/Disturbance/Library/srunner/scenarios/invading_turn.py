@@ -13,9 +13,8 @@ when a vehicle coming from the opposite lane invades the ego's lane, forcing the
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (InvadingActorFlow,
                                                                       ScenarioTimeout,
                                                                       ActorDestroy,
@@ -30,7 +29,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -48,7 +47,7 @@ def get_value_parameter(config, name, p_type, default):
 class InvadingTurn(BasicScenario):
     """
     This class holds everything required for a scenario in which the ego is about to turn right 
-    when a vehicle coming from the opposite lane invades the ego's lane, 
+    when a vehicle coming from the opposite lane invades the ego's lane,
     forcing the ego to move right to avoid a possible collision.
 
     This scenario is expected to take place on a road that has only one lane in each direction.
@@ -60,7 +59,7 @@ class InvadingTurn(BasicScenario):
         Setup all relevant parameters and create scenario
         and instantiate scenario manager
         """
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._trigger_location = config.trigger_points[0].location
@@ -120,14 +119,14 @@ class InvadingTurn(BasicScenario):
             displacement = 0.8 * next_wp.lane_width / 2
             r_vec = next_wp.transform.get_right_vector()
             spawn_transform = next_wp.transform
-            spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.3)
+            spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.3)
 
-            cone = CarlaDataProvider.request_new_actor('*constructioncone*', spawn_transform)
+            cone = PanoSimDataProvider.request_new_actor('*constructioncone*', spawn_transform)
             self.other_actors.append(cone)
 
             self._obstacle_transforms.append([cone, spawn_transform])
 
-            transform = carla.Transform(spawn_transform.location, spawn_transform.rotation)
+            transform = PanoSimTransform(spawn_transform.location, spawn_transform.rotation)
             transform.location.z -= 200
             cone.set_transform(transform)
             cone.set_simulate_physics(False)

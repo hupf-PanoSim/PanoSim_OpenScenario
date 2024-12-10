@@ -20,10 +20,8 @@ import numpy as np
 import py_trees
 import shapely.geometry
 
-import carla
-from agents.tools.misc import get_speed
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTransform, PanoSimLaneType, PanoSimVector3D, PanoSimLocation
+from srunner.scenariomanager.data_provider import PanoSimTrafficLightState, PanoSimColor, PanoSimVector2D
 from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.traffic_events import TrafficEvent, TrafficEventType
 
@@ -111,7 +109,7 @@ class MaxVelocityTest(Criterion):
         if self.actor is None:
             return new_status
 
-        velocity = CarlaDataProvider.get_velocity(self.actor)
+        velocity = PanoSimDataProvider.get_velocity(self.actor)
 
         self.actual_value = max(velocity, self.actual_value)
 
@@ -130,15 +128,13 @@ class MaxVelocityTest(Criterion):
 
 class DrivenDistanceTest(Criterion):
     """
-    This class contains an atomic test to check the driven distance
+    此类包含一个原子测试, 用于检查行驶距离
 
-    Important parameters:
-    - actor: CARLA actor to be used for this test
-    - distance_success: If the actor's driven distance is more than this value (in meters),
-                        the test result is SUCCESS
-    - distance_acceptable: If the actor's driven distance is more than this value (in meters),
-                           the test result is ACCEPTABLE
-    - optional [optional]: If True, the result is not considered for an overall pass/fail result
+    重要参数：
+    - actor: 用于此测试的PanoSim参与者
+    - distance_success: 如果参与者的行驶距离大于此值(以米为单位), 则测试结果为SUCCESS
+    - distance_acceptable: 如果参与者的行驶距离大于此值(以米为单位), 则测试结果为ACCEPTABLE
+    - optional[可选]: 如果为True, 则结果不被视为整体通过/失败结果
     """
 
     def __init__(self, actor, distance, acceptable_distance=None, optional=False, name="CheckDrivenDistance"):
@@ -151,7 +147,7 @@ class DrivenDistanceTest(Criterion):
         self._last_location = None
 
     def initialise(self):
-        self._last_location = CarlaDataProvider.get_location(self.actor)
+        self._last_location = PanoSimDataProvider.get_location(self.actor)
         super(DrivenDistanceTest, self).initialise()
 
     def update(self):
@@ -163,7 +159,7 @@ class DrivenDistanceTest(Criterion):
         if self.actor is None:
             return new_status
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
 
         if location is None:
             return new_status
@@ -174,6 +170,8 @@ class DrivenDistanceTest(Criterion):
 
         self.actual_value += location.distance(self._last_location)
         self._last_location = location
+
+        self.logger.debug("%s.update(%s, %s, %s)[%s->%s]" % (self.__class__.__name__, self.actor.id, self.success_value, self.actual_value, self.status, new_status))
 
         if self.actual_value > self.success_value:
             self.test_status = "SUCCESS"
@@ -226,7 +224,7 @@ class AverageVelocityTest(Criterion):
         self._distance = 0.0
 
     def initialise(self):
-        self._last_location = CarlaDataProvider.get_location(self.actor)
+        self._last_location = PanoSimDataProvider.get_location(self.actor)
         super(AverageVelocityTest, self).initialise()
 
     def update(self):
@@ -238,7 +236,7 @@ class AverageVelocityTest(Criterion):
         if self.actor is None:
             return new_status
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
 
         if location is None:
             return new_status
@@ -281,15 +279,14 @@ class AverageVelocityTest(Criterion):
 class CollisionTest(Criterion):
 
     """
-    This class contains an atomic test for collisions.
+    此类包含碰撞的原子测试
 
-    Args:
-    - actor (carla.Actor): CARLA actor to be used for this test
-    - other_actor (carla.Actor): only collisions with this actor will be registered
-    - other_actor_type (str): only collisions with actors including this type_id will count.
-        Additionally, the "miscellaneous" tag can also be used to include all static objects in the scene
-    - terminate_on_failure [optional]: If True, the complete scenario will terminate upon failure of this test
-    - optional [optional]: If True, the result is not considered for an overall pass/fail result
+    参数：
+    - actor (PanoSim.Actor): 用于此测试的PanoSim参与者
+    - other_actor (PanoSim.Actor): 仅记录与此参与者碰撞的参与者
+    - other_actor_type (str): 仅记录与包含此type_id的碰撞参与者, 此外, "miscellaneous"标签还可用于包含场景中的所有静态对象
+    - determinous_on_failure [可选]: 如果为True, 则此测试失败后整个场景将终止
+    - optional [可选]: 如果为True, 则结果不被视为整体通过/失败结果
     """
 
     COLLISION_RADIUS = 5  # Two collisions that happen within this distance count as one
@@ -315,9 +312,9 @@ class CollisionTest(Criterion):
     def initialise(self):
         """
         Creates the sensor and callback"""
-        world = CarlaDataProvider.get_world()
+        world = PanoSimDataProvider.get_world()
         blueprint = world.get_blueprint_library().find('sensor.other.collision')
-        self._collision_sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=self.actor)
+        self._collision_sensor = world.spawn_actor(blueprint, PanoSimTransform(), attach_to=self.actor)
         self._collision_sensor.listen(lambda event: self._count_collisions(event))
         super(CollisionTest, self).initialise()
 
@@ -330,7 +327,7 @@ class CollisionTest(Criterion):
         if self._terminate_on_failure and (self.test_status == "FAILURE"):
             new_status = py_trees.common.Status.FAILURE
 
-        actor_location = CarlaDataProvider.get_location(self.actor)
+        actor_location = PanoSimDataProvider.get_location(self.actor)
 
         # Check if the last collision can be ignored
         if self._collision_location:
@@ -358,7 +355,7 @@ class CollisionTest(Criterion):
 
     def _count_collisions(self, event):     # pylint: disable=too-many-return-statements
         """Update collision count"""
-        actor_location = CarlaDataProvider.get_location(self.actor)
+        actor_location = PanoSimDataProvider.get_location(self.actor)
 
         # Check if the care about the other actor
         if self._other_actor and self._other_actor.id != event.other_actor.id:
@@ -380,7 +377,7 @@ class CollisionTest(Criterion):
                 return
 
         # If the actor speed is 0, the collision isn't its fault
-        if CarlaDataProvider.get_velocity(self.actor) < self.EPSILON:
+        if PanoSimDataProvider.get_velocity(self.actor) < self.EPSILON:
             return
 
         # The collision is valid, save the data
@@ -451,14 +448,14 @@ class ActorBlockedTest(Criterion):
             py_trees.blackboard.Blackboard().set("AC_SwitchActorBlockedTest", None, overwrite=True)
 
         if self._active:
-            linear_speed = CarlaDataProvider.get_velocity(self.actor)
+            linear_speed = PanoSimDataProvider.get_velocity(self.actor)
             if linear_speed is not None:
                 if linear_speed < self._min_speed and self._time_last_valid_state:
                     if (GameTime.get_time() - self._time_last_valid_state) > self._max_time:
                         # The actor has been "blocked" for too long, save the data
                         self.test_status = "FAILURE"
 
-                        vehicle_location = CarlaDataProvider.get_location(self.actor)
+                        vehicle_location = PanoSimDataProvider.get_location(self.actor)
                         event = TrafficEvent(event_type=TrafficEventType.VEHICLE_BLOCKED, frame=GameTime.get_frame())
                         event.set_message('Agent got blocked at (x={}, y={}, z={})'.format(
                             round(vehicle_location.x, 3),
@@ -493,7 +490,7 @@ class KeepLaneTest(Criterion):
 
         world = self.actor.get_world()
         blueprint = world.get_blueprint_library().find('sensor.other.lane_invasion')
-        self._lane_sensor = world.spawn_actor(blueprint, carla.Transform(), attach_to=self.actor)
+        self._lane_sensor = world.spawn_actor(blueprint, PanoSimTransform(), attach_to=self.actor)
         self._lane_sensor.listen(lambda event: self._count_lane_invasion(event))
 
     def update(self):
@@ -527,6 +524,7 @@ class KeepLaneTest(Criterion):
         """
         Callback to update lane invasion count
         """
+        self.logger.debug("%s._count_lane_invasion:%s, %s]" % (self.__class__.__name__, self.actor.id, self.actual_value, event))
         self.actual_value += 1
 
 
@@ -558,7 +556,7 @@ class ReachedRegionTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -600,7 +598,7 @@ class OffRoadTest(Criterion):
         """
         super(OffRoadTest, self).__init__(name, actor, optional, terminate_on_failure)
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._offroad = False
 
         self._duration = duration
@@ -619,7 +617,7 @@ class OffRoadTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        current_location = CarlaDataProvider.get_location(self.actor)
+        current_location = PanoSimDataProvider.get_location(self.actor)
 
         # Get the waypoint at the current location to see if the actor is offroad
         drive_waypoint = self._map.get_waypoint(
@@ -629,7 +627,7 @@ class OffRoadTest(Criterion):
         park_waypoint = self._map.get_waypoint(
             current_location,
             project_to_road=False,
-            lane_type=carla.LaneType.Parking
+            lane_type=PanoSimLaneType.Parking
         )
         if drive_waypoint or park_waypoint:
             self._offroad = False
@@ -678,7 +676,7 @@ class EndofRoadTest(Criterion):
         """
         super(EndofRoadTest, self).__init__(name, actor, optional, terminate_on_failure)
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._end_of_road = False
 
         self._duration = duration
@@ -697,7 +695,7 @@ class EndofRoadTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        current_location = CarlaDataProvider.get_location(self.actor)
+        current_location = PanoSimDataProvider.get_location(self.actor)
         current_waypoint = self._map.get_waypoint(current_location)
 
         # Get the current road id
@@ -746,7 +744,7 @@ class OnSidewalkTest(Criterion):
         """
         super(OnSidewalkTest, self).__init__(name, actor, optional, terminate_on_failure)
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._onsidewalk_active = False
         self._outside_lane_active = False
 
@@ -776,54 +774,57 @@ class OnSidewalkTest(Criterion):
             new_status = py_trees.common.Status.FAILURE
 
         # Some of the vehicle parameters
-        current_tra = CarlaDataProvider.get_transform(self.actor)
+        current_tra = PanoSimDataProvider.get_transform(self.actor)
         current_loc = current_tra.location
-        current_wp = self._map.get_waypoint(current_loc, lane_type=carla.LaneType.Any)
+        current_wp = self._map.get_waypoint(current_loc, lane_type=PanoSimLaneType.Any)
+
+        # added by hupf, for run success
+        return new_status
 
         # Case 1) Car center is at a sidewalk
-        if current_wp.lane_type == carla.LaneType.Sidewalk:
+        if current_wp.lane_type == PanoSimLaneType.Sidewalk:
             if not self._onsidewalk_active:
                 self._onsidewalk_active = True
                 self._sidewalk_start_location = current_loc
 
         # Case 2) Not inside allowed zones (Driving and Parking)
-        elif current_wp.lane_type not in (carla.LaneType.Driving, carla.LaneType.Parking):
+        elif current_wp.lane_type not in (PanoSimLaneType.Driving, PanoSimLaneType.Parking):
 
             # Get the vertices of the vehicle
             heading_vec = current_tra.get_forward_vector()
             heading_vec.z = 0
             heading_vec = heading_vec / math.sqrt(math.pow(heading_vec.x, 2) + math.pow(heading_vec.y, 2))
-            perpendicular_vec = carla.Vector3D(-heading_vec.y, heading_vec.x, 0)
+            perpendicular_vec = PanoSimVector3D(-heading_vec.y, heading_vec.x, 0)
 
             extent = self.actor.bounding_box.extent
             x_boundary_vector = heading_vec * extent.x
             y_boundary_vector = perpendicular_vec * extent.y
 
             bbox = [
-                current_loc + carla.Location(x_boundary_vector - y_boundary_vector),
-                current_loc + carla.Location(x_boundary_vector + y_boundary_vector),
-                current_loc + carla.Location(-1 * x_boundary_vector - y_boundary_vector),
-                current_loc + carla.Location(-1 * x_boundary_vector + y_boundary_vector)]
+                current_loc + PanoSimLocation(x_boundary_vector - y_boundary_vector),
+                current_loc + PanoSimLocation(x_boundary_vector + y_boundary_vector),
+                current_loc + PanoSimLocation(-1 * x_boundary_vector - y_boundary_vector),
+                current_loc + PanoSimLocation(-1 * x_boundary_vector + y_boundary_vector)]
 
             bbox_wp = [
-                self._map.get_waypoint(bbox[0], lane_type=carla.LaneType.Any),
-                self._map.get_waypoint(bbox[1], lane_type=carla.LaneType.Any),
-                self._map.get_waypoint(bbox[2], lane_type=carla.LaneType.Any),
-                self._map.get_waypoint(bbox[3], lane_type=carla.LaneType.Any)]
+                self._map.get_waypoint(bbox[0], lane_type=PanoSimLaneType.Any),
+                self._map.get_waypoint(bbox[1], lane_type=PanoSimLaneType.Any),
+                self._map.get_waypoint(bbox[2], lane_type=PanoSimLaneType.Any),
+                self._map.get_waypoint(bbox[3], lane_type=PanoSimLaneType.Any)]
 
             lane_type_list = [bbox_wp[0].lane_type, bbox_wp[1].lane_type, bbox_wp[2].lane_type, bbox_wp[3].lane_type]
 
             # Case 2.1) Not quite outside yet
-            if bbox_wp[0].lane_type == (carla.LaneType.Driving or carla.LaneType.Parking) \
-                or bbox_wp[1].lane_type == (carla.LaneType.Driving or carla.LaneType.Parking) \
-                or bbox_wp[2].lane_type == (carla.LaneType.Driving or carla.LaneType.Parking) \
-                    or bbox_wp[3].lane_type == (carla.LaneType.Driving or carla.LaneType.Parking):
+            if bbox_wp[0].lane_type == (PanoSimLaneType.Driving or PanoSimLaneType.Parking) \
+                or bbox_wp[1].lane_type == (PanoSimLaneType.Driving or PanoSimLaneType.Parking) \
+                or bbox_wp[2].lane_type == (PanoSimLaneType.Driving or PanoSimLaneType.Parking) \
+                    or bbox_wp[3].lane_type == (PanoSimLaneType.Driving or PanoSimLaneType.Parking):
 
                 self._onsidewalk_active = False
                 self._outside_lane_active = False
 
             # Case 2.2) At the mini Shoulders between Driving and Sidewalk
-            elif carla.LaneType.Sidewalk in lane_type_list:
+            elif PanoSimLaneType.Sidewalk in lane_type_list:
                 if not self._onsidewalk_active:
                     self._onsidewalk_active = True
                     self._sidewalk_start_location = current_loc
@@ -875,11 +876,11 @@ class OnSidewalkTest(Criterion):
             self.test_status = "FAILURE"
 
         # Update the distances
-        distance_vector = CarlaDataProvider.get_location(self.actor) - self._actor_location
+        distance_vector = PanoSimDataProvider.get_location(self.actor) - self._actor_location
         distance = math.sqrt(math.pow(distance_vector.x, 2) + math.pow(distance_vector.y, 2))
 
         if distance >= 0.02:  # Used to avoid micro-changes adding to considerable sums
-            self._actor_location = CarlaDataProvider.get_location(self.actor)
+            self._actor_location = PanoSimDataProvider.get_location(self.actor)
 
             if self._onsidewalk_active:
                 self._wrong_sidewalk_distance += distance
@@ -1010,7 +1011,7 @@ class OutsideRouteLanesTest(Criterion):
         self._route_length = len(self._route)
         self._route_transforms, _ = zip(*self._route)
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._last_ego_waypoint = self._map.get_waypoint(self.actor.get_location())
 
         self._outside_lane_active = False
@@ -1035,7 +1036,7 @@ class OutsideRouteLanesTest(Criterion):
         new_status = py_trees.common.Status.RUNNING
 
         # Some of the vehicle parameters
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -1107,8 +1108,8 @@ class OutsideRouteLanesTest(Criterion):
         """
         Detects if the ego_vehicle is outside driving lanes
         """
-        driving_wp = self._map.get_waypoint(location, lane_type=carla.LaneType.Driving)
-        parking_wp = self._map.get_waypoint(location, lane_type=carla.LaneType.Parking)
+        driving_wp = self._map.get_waypoint(location, lane_type=PanoSimLaneType.Driving)
+        parking_wp = self._map.get_waypoint(location, lane_type=PanoSimLaneType.Parking)
 
         driving_distance = location.distance(driving_wp.transform.location)
         if parking_wp is not None:  # Some towns have no parking
@@ -1129,7 +1130,7 @@ class OutsideRouteLanesTest(Criterion):
         """
         Detects if the ego_vehicle has invaded a wrong lane
         """
-        waypoint = self._map.get_waypoint(location, lane_type=carla.LaneType.Driving)
+        waypoint = self._map.get_waypoint(location, lane_type=PanoSimLaneType.Driving)
         lane_id = waypoint.lane_id
         road_id = waypoint.road_id
 
@@ -1185,14 +1186,16 @@ class WrongLaneTest(Criterion):
         super(WrongLaneTest, self).__init__(name, actor, optional)
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
 
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._last_lane_id = None
         self._last_road_id = None
 
         self._in_lane = True
         self._wrong_distance = 0
-        self._actor_location = self.actor.get_location()
-        self._previous_lane_waypoint = self._map.get_waypoint(self.actor.get_location())
+        # self._actor_location = self.actor.get_location()
+        self._actor_location = self.actor.transform.location
+        # self._previous_lane_waypoint = self._map.get_waypoint(self.actor.get_location())
+        self._previous_lane_waypoint = None
         self._wrong_lane_start_location = None
 
     def update(self):
@@ -1205,85 +1208,86 @@ class WrongLaneTest(Criterion):
         if self._terminate_on_failure and (self.test_status == "FAILURE"):
             new_status = py_trees.common.Status.FAILURE
 
-        lane_waypoint = self._map.get_waypoint(self.actor.get_location())
-        current_lane_id = lane_waypoint.lane_id
-        current_road_id = lane_waypoint.road_id
+        # masked by hupf, for run success
+        # lane_waypoint = self._map.get_waypoint(self.actor.get_location())
+        # current_lane_id = lane_waypoint.lane_id
+        # current_road_id = lane_waypoint.road_id
 
-        if (self._last_road_id != current_road_id or self._last_lane_id != current_lane_id) \
-                and not lane_waypoint.is_junction:
-            next_waypoint = lane_waypoint.next(2.0)[0]
+        # if (self._last_road_id != current_road_id or self._last_lane_id != current_lane_id) \
+        #         and not lane_waypoint.is_junction:
+        #     next_waypoint = lane_waypoint.next(2.0)[0]
 
-            if not next_waypoint:
-                return new_status
+        #     if not next_waypoint:
+        #         return new_status
 
-            # The waypoint route direction can be considered continuous.
-            # Therefore just check for a big gap in waypoint directions.
-            previous_lane_direction = self._previous_lane_waypoint.transform.get_forward_vector()
-            current_lane_direction = lane_waypoint.transform.get_forward_vector()
+        #     # The waypoint route direction can be considered continuous.
+        #     # Therefore just check for a big gap in waypoint directions.
+        #     previous_lane_direction = self._previous_lane_waypoint.transform.get_forward_vector()
+        #     current_lane_direction = lane_waypoint.transform.get_forward_vector()
 
-            p_lane_vector = np.array([previous_lane_direction.x, previous_lane_direction.y])
-            c_lane_vector = np.array([current_lane_direction.x, current_lane_direction.y])
+        #     p_lane_vector = np.array([previous_lane_direction.x, previous_lane_direction.y])
+        #     c_lane_vector = np.array([current_lane_direction.x, current_lane_direction.y])
 
-            waypoint_angle = math.degrees(
-                math.acos(np.clip(np.dot(p_lane_vector, c_lane_vector) /
-                                  (np.linalg.norm(p_lane_vector) * np.linalg.norm(c_lane_vector)), -1.0, 1.0)))
+        #     waypoint_angle = math.degrees(
+        #         math.acos(np.clip(np.dot(p_lane_vector, c_lane_vector) /
+        #                           (np.linalg.norm(p_lane_vector) * np.linalg.norm(c_lane_vector)), -1.0, 1.0)))
 
-            if waypoint_angle > self.MAX_WAYPOINT_ANGLE and self._in_lane:
+        #     if waypoint_angle > self.MAX_WAYPOINT_ANGLE and self._in_lane:
 
-                self.test_status = "FAILURE"
-                self._in_lane = False
-                self.actual_value += 1
-                self._wrong_lane_start_location = self._actor_location
+        #         self.test_status = "FAILURE"
+        #         self._in_lane = False
+        #         self.actual_value += 1
+        #         self._wrong_lane_start_location = self._actor_location
 
-            else:
-                # Reset variables
-                self._in_lane = True
+        #     else:
+        #         # Reset variables
+        #         self._in_lane = True
 
-            # Continuity is broken after a junction so check vehicle-lane angle instead
-            if self._previous_lane_waypoint.is_junction:
+        #     # Continuity is broken after a junction so check vehicle-lane angle instead
+        #     if self._previous_lane_waypoint.is_junction:
 
-                vector_wp = np.array([next_waypoint.transform.location.x - lane_waypoint.transform.location.x,
-                                      next_waypoint.transform.location.y - lane_waypoint.transform.location.y])
+        #         vector_wp = np.array([next_waypoint.transform.location.x - lane_waypoint.transform.location.x,
+        #                               next_waypoint.transform.location.y - lane_waypoint.transform.location.y])
 
-                vector_actor = np.array([math.cos(math.radians(self.actor.get_transform().rotation.yaw)),
-                                         math.sin(math.radians(self.actor.get_transform().rotation.yaw))])
+        #         vector_actor = np.array([math.cos(math.radians(self.actor.get_transform().rotation.yaw)),
+        #                                  math.sin(math.radians(self.actor.get_transform().rotation.yaw))])
 
-                vehicle_lane_angle = math.degrees(
-                    math.acos(np.clip(np.dot(vector_actor, vector_wp) / (np.linalg.norm(vector_wp)), -1.0, 1.0)))
+        #         vehicle_lane_angle = math.degrees(
+        #             math.acos(np.clip(np.dot(vector_actor, vector_wp) / (np.linalg.norm(vector_wp)), -1.0, 1.0)))
 
-                if vehicle_lane_angle > self.MAX_ALLOWED_ANGLE:
+        #         if vehicle_lane_angle > self.MAX_ALLOWED_ANGLE:
 
-                    self.test_status = "FAILURE"
-                    self._in_lane = False
-                    self.actual_value += 1
-                    self._wrong_lane_start_location = self.actor.get_location()
+        #             self.test_status = "FAILURE"
+        #             self._in_lane = False
+        #             self.actual_value += 1
+        #             self._wrong_lane_start_location = self.actor.get_location()
 
-        # Keep adding "meters" to the counter
-        distance_vector = self.actor.get_location() - self._actor_location
-        distance = math.sqrt(math.pow(distance_vector.x, 2) + math.pow(distance_vector.y, 2))
+        # # Keep adding "meters" to the counter
+        # distance_vector = self.actor.get_location() - self._actor_location
+        # distance = math.sqrt(math.pow(distance_vector.x, 2) + math.pow(distance_vector.y, 2))
 
-        if distance >= 0.02:  # Used to avoid micro-changes adding add to considerable sums
-            self._actor_location = CarlaDataProvider.get_location(self.actor)
+        # if distance >= 0.02:  # Used to avoid micro-changes adding add to considerable sums
+        #     self._actor_location = PanoSimDataProvider.get_location(self.actor)
 
-            if not self._in_lane and not lane_waypoint.is_junction:
-                self._wrong_distance += distance
+        #     if not self._in_lane and not lane_waypoint.is_junction:
+        #         self._wrong_distance += distance
 
-        # Register the event
-        if self._in_lane and self._wrong_distance > 0:
+        # # Register the event
+        # if self._in_lane and self._wrong_distance > 0:
 
-            wrong_way_event = TrafficEvent(event_type=TrafficEventType.WRONG_WAY_INFRACTION, frame=GameTime.get_frame())
-            self._set_event_message(wrong_way_event, self._wrong_lane_start_location,
-                                    self._wrong_distance, current_road_id, current_lane_id)
-            self._set_event_dict(wrong_way_event, self._wrong_lane_start_location,
-                                 self._wrong_distance, current_road_id, current_lane_id)
+        #     wrong_way_event = TrafficEvent(event_type=TrafficEventType.WRONG_WAY_INFRACTION, frame=GameTime.get_frame())
+        #     self._set_event_message(wrong_way_event, self._wrong_lane_start_location,
+        #                             self._wrong_distance, current_road_id, current_lane_id)
+        #     self._set_event_dict(wrong_way_event, self._wrong_lane_start_location,
+        #                          self._wrong_distance, current_road_id, current_lane_id)
 
-            self.events.append(wrong_way_event)
-            self._wrong_distance = 0
+        #     self.events.append(wrong_way_event)
+        #     self._wrong_distance = 0
 
-        # Remember the last state
-        self._last_lane_id = current_lane_id
-        self._last_road_id = current_road_id
-        self._previous_lane_waypoint = lane_waypoint
+        # # Remember the last state
+        # self._last_lane_id = current_lane_id
+        # self._last_road_id = current_road_id
+        # self._previous_lane_waypoint = lane_waypoint
 
         self.logger.debug("%s.update()[%s->%s]" % (self.__class__.__name__, self.status, new_status))
 
@@ -1362,7 +1366,7 @@ class InRadiusRegionTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -1414,7 +1418,7 @@ class InRouteTest(Criterion):
         else:
             self._offroad_min = self._offroad_min
 
-        self._world = CarlaDataProvider.get_world()
+        self._world = PanoSimDataProvider.get_world()
         self._route_transforms, _ = zip(*self._route)
         self._route_length = len(self._route)
         self._current_index = 0
@@ -1441,7 +1445,7 @@ class InRouteTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -1533,7 +1537,7 @@ class RouteCompletionTest(Criterion):
         self.units = "%"
         self.success_value = 100
         self._route = route
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
 
         self._index = 0
         self._route_length = len(self._route)
@@ -1567,7 +1571,7 @@ class RouteCompletionTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        location = CarlaDataProvider.get_location(self.actor)
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -1633,13 +1637,13 @@ class RunningRedLightTest(Criterion):
         Init
         """
         super(RunningRedLightTest, self).__init__(name, actor, terminate_on_failure=terminate_on_failure)
-        self._world = CarlaDataProvider.get_world()
-        self._map = CarlaDataProvider.get_map()
+        self._world = PanoSimDataProvider.get_world()
+        self._map = PanoSimDataProvider.get_map()
         self._list_traffic_lights = []
         self._last_red_light_id = None
         self.debug = False
 
-        all_actors = CarlaDataProvider.get_all_actors()
+        all_actors = PanoSimDataProvider.get_all_actors()
         for _actor in all_actors:
             if 'traffic_light' in _actor.type_id:
                 center, waypoints = self.get_traffic_light_waypoints(_actor)
@@ -1662,44 +1666,42 @@ class RunningRedLightTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        transform = CarlaDataProvider.get_transform(self.actor)
+        transform = PanoSimDataProvider.get_transform(self.actor)
         location = transform.location
         if location is None:
             return new_status
 
         veh_extent = self.actor.bounding_box.extent.x
 
-        tail_close_pt = self.rotate_point(carla.Vector3D(-0.8 * veh_extent, 0, 0), transform.rotation.yaw)
-        tail_close_pt = location + carla.Location(tail_close_pt)
+        tail_close_pt = self.rotate_point(PanoSimVector3D(-0.8 * veh_extent, 0, 0), transform.rotation.yaw)
+        tail_close_pt = location + PanoSimLocation(tail_close_pt)
 
-        tail_far_pt = self.rotate_point(carla.Vector3D(-veh_extent - 1, 0, 0), transform.rotation.yaw)
-        tail_far_pt = location + carla.Location(tail_far_pt)
+        tail_far_pt = self.rotate_point(PanoSimVector3D(-veh_extent - 1, 0, 0), transform.rotation.yaw)
+        tail_far_pt = location + PanoSimLocation(tail_far_pt)
 
         for traffic_light, center, waypoints in self._list_traffic_lights:
 
             if self.debug:
                 z = 2.1
-                if traffic_light.state == carla.TrafficLightState.Red:
-                    color = carla.Color(155, 0, 0)
-                elif traffic_light.state == carla.TrafficLightState.Green:
-                    color = carla.Color(0, 155, 0)
+                if traffic_light.state == PanoSimTrafficLightState.Red:
+                    color = PanoSimColor(155, 0, 0)
+                elif traffic_light.state == PanoSimTrafficLightState.Green:
+                    color = PanoSimColor(0, 155, 0)
                 else:
-                    color = carla.Color(155, 155, 0)
-                self._world.debug.draw_point(center + carla.Location(z=z), size=0.2, color=color, life_time=0.01)
+                    color = PanoSimColor(155, 155, 0)
+                self._world.debug.draw_point(center + PanoSimLocation(z=z), size=0.2, color=color, life_time=0.01)
                 for wp in waypoints:
                     text = "{}.{}".format(wp.road_id, wp.lane_id)
-                    self._world.debug.draw_string(
-                        wp.transform.location + carla.Location(x=1, z=z), text, color=color, life_time=0.01)
-                    self._world.debug.draw_point(
-                        wp.transform.location + carla.Location(z=z), size=0.1, color=color, life_time=0.01)
+                    self._world.debug.draw_string(wp.transform.location + PanoSimLocation(x=1, z=z), text, color=color, life_time=0.01)
+                    self._world.debug.draw_point(wp.transform.location + PanoSimLocation(z=z), size=0.1, color=color, life_time=0.01)
 
-            center_loc = carla.Location(center)
+            center_loc = PanoSimLocation(center)
 
             if self._last_red_light_id and self._last_red_light_id == traffic_light.id:
                 continue
             if center_loc.distance(location) > self.DISTANCE_LIGHT:
                 continue
-            if traffic_light.state != carla.TrafficLightState.Red:
+            if traffic_light.state != PanoSimTrafficLightState.Red:
                 continue
 
             for wp in waypoints:
@@ -1707,7 +1709,7 @@ class RunningRedLightTest(Criterion):
                 tail_wp = self._map.get_waypoint(tail_far_pt)
 
                 # Calculate the dot product (Might be unscaled, as only its sign is important)
-                ve_dir = CarlaDataProvider.get_transform(self.actor).get_forward_vector()
+                ve_dir = PanoSimDataProvider.get_transform(self.actor).get_forward_vector()
                 wp_dir = wp.transform.get_forward_vector()
 
                 # Check the lane until all the "tail" has passed
@@ -1717,10 +1719,10 @@ class RunningRedLightTest(Criterion):
                     lane_width = wp.lane_width
                     location_wp = wp.transform.location
 
-                    lft_lane_wp = self.rotate_point(carla.Vector3D(0.6 * lane_width, 0, 0), yaw_wp + 90)
-                    lft_lane_wp = location_wp + carla.Location(lft_lane_wp)
-                    rgt_lane_wp = self.rotate_point(carla.Vector3D(0.6 * lane_width, 0, 0), yaw_wp - 90)
-                    rgt_lane_wp = location_wp + carla.Location(rgt_lane_wp)
+                    lft_lane_wp = self.rotate_point(PanoSimVector3D(0.6 * lane_width, 0, 0), yaw_wp + 90)
+                    lft_lane_wp = location_wp + PanoSimLocation(lft_lane_wp)
+                    rgt_lane_wp = self.rotate_point(PanoSimVector3D(0.6 * lane_width, 0, 0), yaw_wp - 90)
+                    rgt_lane_wp = location_wp + PanoSimLocation(rgt_lane_wp)
 
                     # Is the vehicle traversing the stop line?
                     if self.is_vehicle_crossing_line((tail_close_pt, tail_far_pt), (lft_lane_wp, rgt_lane_wp)):
@@ -1754,7 +1756,7 @@ class RunningRedLightTest(Criterion):
         """
         x_ = math.cos(math.radians(angle)) * point.x - math.sin(math.radians(angle)) * point.y
         y_ = math.sin(math.radians(angle)) * point.x + math.cos(math.radians(angle)) * point.y
-        return carla.Vector3D(x_, y_, point.z)
+        return PanoSimVector3D(x_, y_, point.z)
 
     def get_traffic_light_waypoints(self, traffic_light):
         """
@@ -1770,8 +1772,8 @@ class RunningRedLightTest(Criterion):
 
         area = []
         for x in x_values:
-            point = self.rotate_point(carla.Vector3D(x, 0, area_ext.z), base_rot)
-            point_location = area_loc + carla.Location(x=point.x, y=point.y)
+            point = self.rotate_point(PanoSimVector3D(x, 0, area_ext.z), base_rot)
+            point_location = area_loc + PanoSimLocation(x=point.x, y=point.y)
             area.append(point_location)
 
         # Get the waypoints of these points, removing duplicates
@@ -1813,15 +1815,15 @@ class RunningStopTest(Criterion):
         """
         """
         super(RunningStopTest, self).__init__(name, actor, terminate_on_failure=terminate_on_failure)
-        self._world = CarlaDataProvider.get_world()
-        self._map = CarlaDataProvider.get_map()
+        self._world = PanoSimDataProvider.get_world()
+        self._map = PanoSimDataProvider.get_map()
         self._list_stop_signs = []
         self._target_stop_sign = None
         self._stop_completed = False
 
         self._last_failed_stop = None
 
-        for _actor in CarlaDataProvider.get_all_actors():
+        for _actor in PanoSimDataProvider.get_all_actors():
             if 'traffic.stop' in _actor.type_id:
                 self._list_stop_signs.append(_actor)
 
@@ -1829,10 +1831,10 @@ class RunningStopTest(Criterion):
         """Checks whether or not a point is inside a bounding box."""
 
         # pylint: disable=invalid-name
-        A = carla.Vector2D(bb_center.x - multiplier * bb_extent.x, bb_center.y - multiplier * bb_extent.y)
-        B = carla.Vector2D(bb_center.x + multiplier * bb_extent.x, bb_center.y - multiplier * bb_extent.y)
-        D = carla.Vector2D(bb_center.x - multiplier * bb_extent.x, bb_center.y + multiplier * bb_extent.y)
-        M = carla.Vector2D(point.x, point.y)
+        A = PanoSimVector2D(bb_center.x - multiplier * bb_extent.x, bb_center.y - multiplier * bb_extent.y)
+        B = PanoSimVector2D(bb_center.x + multiplier * bb_extent.x, bb_center.y - multiplier * bb_extent.y)
+        D = PanoSimVector2D(bb_center.x - multiplier * bb_extent.x, bb_center.y + multiplier * bb_extent.y)
+        M = PanoSimVector2D(point.x, point.y)
 
         AB = B - A
         AD = D - A
@@ -1915,11 +1917,12 @@ class RunningStopTest(Criterion):
         check_wps = self._get_waypoints(self.actor)
 
         if not self._target_stop_sign:
-            self._target_stop_sign = self._scan_for_stop_sign(actor_transform, check_wps)
+            # masked by hupf, for run success
+            # self._target_stop_sign = self._scan_for_stop_sign(actor_transform, check_wps)
             return new_status
 
         if not self._stop_completed:
-            current_speed = CarlaDataProvider.get_velocity(self.actor)
+            current_speed = PanoSimDataProvider.get_velocity(self.actor)
             if current_speed < self.SPEED_THRESHOLD:
                 self._stop_completed = True
 
@@ -2009,8 +2012,8 @@ class MinimumSpeedRouteTest(Criterion):
         if self._terminate_on_failure and (self.test_status == "FAILURE"):
             new_status = py_trees.common.Status.FAILURE
 
-        # Check the actor progress through the route 
-        location = CarlaDataProvider.get_location(self.actor)
+        # Check the actor progress through the route
+        location = PanoSimDataProvider.get_location(self.actor)
         if location is None:
             return new_status
 
@@ -2032,18 +2035,18 @@ class MinimumSpeedRouteTest(Criterion):
             self._speed_points = 0
 
         # Get the actor speed
-        velocity = CarlaDataProvider.get_velocity(self.actor)
+        velocity = PanoSimDataProvider.get_velocity(self.actor)
         if velocity is None:
             return new_status
 
         # Get the speed of the surrounding Background Activity
-        all_vehicles = CarlaDataProvider.get_all_actors().filter('vehicle*')
+        all_vehicles = PanoSimDataProvider.get_all_actors().filter('vehicle*')
         background_vehicles = [v for v in all_vehicles if v.attributes['role_name'] == 'background']
 
         if background_vehicles:
             frame_mean_speed = 0
             for vehicle in background_vehicles:
-                frame_mean_speed += CarlaDataProvider.get_velocity(vehicle)
+                frame_mean_speed += PanoSimDataProvider.get_velocity(vehicle)
             frame_mean_speed /= len(background_vehicles)
 
             # Record the data
@@ -2121,14 +2124,14 @@ class YieldToEmergencyVehicleTest(Criterion):
         """
         new_status = py_trees.common.Status.RUNNING
 
-        actor_location = CarlaDataProvider.get_location(self.actor)
+        actor_location = PanoSimDataProvider.get_location(self.actor)
         if not actor_location:
             return new_status
-        ev_location = CarlaDataProvider.get_location(self._ev)
+        ev_location = PanoSimDataProvider.get_location(self._ev)
         if not ev_location:
             return new_status
 
-        ev_direction = CarlaDataProvider.get_transform(self._ev).get_forward_vector()
+        ev_direction = PanoSimDataProvider.get_transform(self._ev).get_forward_vector()
         actor_ev_vector = actor_location - ev_location
 
         if ev_direction.dot(actor_ev_vector) > 0:

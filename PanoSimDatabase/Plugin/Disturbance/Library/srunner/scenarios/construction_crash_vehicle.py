@@ -11,9 +11,8 @@ moving along the road and encountering a construction setup.
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLaneType, PanoSimLocation, PanoSimVector3D, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       ActorTransformSetter,
                                                                       SwitchWrongDirectionTest,
@@ -62,7 +61,7 @@ class ConstructionObstacle(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._trigger_distance = 30
@@ -114,7 +113,7 @@ class ConstructionObstacle(BasicScenario):
                 wp = prop_wp.get_right_lane()
             else:
                 wp = prop_wp.get_left_lane()
-            if wp is None or wp.lane_type not in (carla.LaneType.Driving, carla.LaneType.Parking):
+            if wp is None or wp.lane_type not in (PanoSimLaneType.Driving, PanoSimLaneType.Parking):
                 break
             prop_wp = wp
 
@@ -124,9 +123,9 @@ class ConstructionObstacle(BasicScenario):
             r_vec *= -1
 
         spawn_transform = wp.transform
-        spawn_transform.location += carla.Location(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
+        spawn_transform.location += PanoSimLocation(x=displacement * r_vec.x, y=displacement * r_vec.y, z=0.2)
         spawn_transform.rotation.yaw += 90
-        signal_prop = CarlaDataProvider.request_new_actor('static.prop.warningconstruction', spawn_transform)
+        signal_prop = PanoSimDataProvider.request_new_actor('static.prop.warningconstruction', spawn_transform)
         if not signal_prop:
             raise ValueError("Couldn't spawn the indication prop asset")
         signal_prop.set_simulate_physics(False)
@@ -138,15 +137,15 @@ class ConstructionObstacle(BasicScenario):
         while _dist < (cone_length * cone_offset):
             # Move forward
             _dist += cone_offset
-            forward_dist = carla.Vector3D(0, 0, 0) + forward_vector * _dist
+            forward_dist = PanoSimVector3D(0, 0, 0) + forward_vector * _dist
 
             location = start_transform.location + forward_dist
             location.z += z_inc
-            spawn_transform = carla.Transform(location, start_transform.rotation)
+            spawn_transform = PanoSimTransform(location, start_transform.rotation)
             spawn_transform.location.z -= 200
-            cone_transform = carla.Transform(location, start_transform.rotation)
+            cone_transform = PanoSimTransform(location, start_transform.rotation)
 
-            cone = CarlaDataProvider.request_new_actor('static.prop.constructioncone', spawn_transform)
+            cone = PanoSimDataProvider.request_new_actor('static.prop.constructioncone', spawn_transform)
             cone.set_simulate_physics(False)
             self.other_actors.append(cone)
 
@@ -169,7 +168,7 @@ class ConstructionObstacle(BasicScenario):
         for key, value in _initial_offset.items():
             if key == 'cones':
                 continue
-            transform = carla.Transform(
+            transform = PanoSimTransform(
                 start_transform.location,
                 start_transform.rotation)
             transform.rotation.yaw += value['yaw']
@@ -178,9 +177,9 @@ class ConstructionObstacle(BasicScenario):
             transform.location.z += value['z']
             transform.rotation.yaw += _perp_angle
 
-            spawn_transform = carla.Transform(transform.location, transform.rotation)
+            spawn_transform = PanoSimTransform(transform.location, transform.rotation)
             spawn_transform.location.z -= 200
-            static = CarlaDataProvider.request_new_actor(
+            static = PanoSimDataProvider.request_new_actor(
                 _prop_names[key], spawn_transform)
             static.set_simulate_physics(False)
             self.other_actors.append(static)
@@ -188,7 +187,7 @@ class ConstructionObstacle(BasicScenario):
             self._construction_transforms.append([static, transform])
 
         # Cones
-        side_transform = carla.Transform(
+        side_transform = PanoSimTransform(
             start_transform.location,
             start_transform.rotation)
         side_transform.rotation.yaw += _perp_angle
@@ -226,7 +225,7 @@ class ConstructionObstacle(BasicScenario):
 
         for actor, transform in self._construction_transforms:
             root.add_child(ActorTransformSetter(actor, transform, True))
-    
+
         end_condition = py_trees.composites.Parallel(policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
         end_condition.add_child(ScenarioTimeout(self._scenario_timeout, self.config.name))
         end_condition.add_child(WaitUntilInFrontPosition(self.ego_vehicles[0], self._end_wp.transform, False))
@@ -292,7 +291,7 @@ class ConstructionObstacleTwoWays(ConstructionObstacle):
 
         for actor, transform in self._construction_transforms:
             root.add_child(ActorTransformSetter(actor, transform, True))
-    
+
         end_condition = py_trees.composites.Parallel(policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
         end_condition.add_child(ScenarioTimeout(self._scenario_timeout, self.config.name))
         end_condition.add_child(WaitUntilInFrontPosition(self.ego_vehicles[0], self._end_wp.transform, False))

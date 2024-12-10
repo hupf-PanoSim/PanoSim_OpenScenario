@@ -10,9 +10,8 @@ to cut in in front of the ego vehicle, forcing it to break
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleControl, PanoSimLocation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       BasicAgentBehavior)
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest
@@ -34,7 +33,7 @@ class ParkingCutIn(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
 
@@ -80,11 +79,11 @@ class ParkingCutIn(BasicScenario):
 
         self.parking_slots.append(parking_wp.transform.location)
 
-        self._blocker_actor = CarlaDataProvider.request_new_actor(
+        self._blocker_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', parking_wp.transform, 'scenario no lights', attribute_filter={'base_type': 'car', 'generation': 2})
         if not self._blocker_actor:
             raise ValueError("Couldn't spawn the parked actor")
-        self._blocker_actor.apply_control(carla.VehicleControl(hand_brake=True))
+        self._blocker_actor.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(self._blocker_actor)
 
         side_location = self._get_displaced_location(self._blocker_actor, parking_wp)
@@ -103,7 +102,7 @@ class ParkingCutIn(BasicScenario):
 
         self.parking_slots.append(parking_wp.transform.location)
 
-        self._parked_actor = CarlaDataProvider.request_new_actor(
+        self._parked_actor = PanoSimDataProvider.request_new_actor(
             'vehicle.*', parking_wp.transform, 'scenario', attribute_filter=self._bp_attributes)
         if not self._parked_actor:
             raise ValueError("Couldn't spawn the parked actor")
@@ -122,7 +121,7 @@ class ParkingCutIn(BasicScenario):
         if self._direction == 'left':
             displacement_vector *= -1
 
-        new_location = wp.transform.location + carla.Location(x=displacement*displacement_vector.x,
+        new_location = wp.transform.location + PanoSimLocation(x=displacement*displacement_vector.x,
                                                               y=displacement*displacement_vector.y,
                                                               z=displacement*displacement_vector.z)
         new_location.z += 0.05  # Just in case, avoid collisions with the ground

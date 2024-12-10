@@ -9,8 +9,8 @@ This module provides a dummy agent to control the ego vehicle
 
 from __future__ import print_function
 
-import carla
 
+from srunner.scenariomanager.data_provider import PanoSimVehicleControl
 from srunner.autoagents.autonomous_agent import AutonomousAgent
 
 
@@ -74,7 +74,7 @@ class DummyAgent(AutonomousAgent):
         # DO SOMETHING SMART
 
         # RETURN CONTROL
-        control = carla.VehicleControl()
+        control = PanoSimVehicleControl()
         control.steer = 0.0
         control.throttle = 0.0
         control.brake = 0.0

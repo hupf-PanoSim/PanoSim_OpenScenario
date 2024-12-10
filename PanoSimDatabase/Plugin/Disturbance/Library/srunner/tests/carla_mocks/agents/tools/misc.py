@@ -10,7 +10,9 @@
 
 import math
 import numpy as np
-import carla
+
+from srunner.scenariomanager.data_provider import PanoSimLocation, PanoSimVector3D
+
 
 def draw_waypoints(world, waypoints, z=0.5):
     """
@@ -22,9 +24,9 @@ def draw_waypoints(world, waypoints, z=0.5):
     """
     for wpt in waypoints:
         wpt_t = wpt.transform
-        begin = wpt_t.location + carla.Location(z=z)
+        begin = wpt_t.location + PanoSimLocation(z=z)
         angle = math.radians(wpt_t.rotation.yaw)
-        end = begin + carla.Location(x=math.cos(angle), y=math.sin(angle))
+        end = begin + PanoSimLocation(x=math.cos(angle), y=math.sin(angle))
         world.debug.draw_arrow(begin, end, arrow_size=0.3, life_time=1.0)
 
 
@@ -50,17 +52,17 @@ def get_trafficlight_trigger_location(traffic_light):
         rotated_x = math.cos(radians) * point.x - math.sin(radians) * point.y
         rotated_y = math.sin(radians) * point.x - math.cos(radians) * point.y
 
-        return carla.Vector3D(rotated_x, rotated_y, point.z)
+        return PanoSimVector3D(rotated_x, rotated_y, point.z)
 
     base_transform = traffic_light.get_transform()
     base_rot = base_transform.rotation.yaw
     area_loc = base_transform.transform(traffic_light.trigger_volume.location)
     area_ext = traffic_light.trigger_volume.extent
 
-    point = rotate_point(carla.Vector3D(0, 0, area_ext.z), math.radians(base_rot))
-    point_location = area_loc + carla.Location(x=point.x, y=point.y)
+    point = rotate_point(PanoSimVector3D(0, 0, area_ext.z), math.radians(base_rot))
+    point_location = area_loc + PanoSimLocation(x=point.x, y=point.y)
 
-    return carla.Location(point_location.x, point_location.y, point_location.z)
+    return PanoSimLocation(point_location.x, point_location.y, point_location.z)
 
 
 def is_within_distance(target_transform, reference_transform, max_distance, angle_interval=None):

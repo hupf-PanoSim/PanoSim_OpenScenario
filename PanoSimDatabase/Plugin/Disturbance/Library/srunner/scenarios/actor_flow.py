@@ -13,11 +13,10 @@ priority, e.g. by running a red traffic light.
 from __future__ import print_function
 
 import py_trees
-import carla
 
 from agents.navigation.local_planner import RoadOption
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimLaneType
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import ActorFlow, ScenarioTimeout, WaitForever
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest, ScenarioTimeoutTest
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (InTriggerDistanceToLocation,
@@ -35,7 +34,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -71,11 +70,11 @@ class EnterActorFlow(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         ego_location = config.trigger_points[0].location
-        self._reference_waypoint = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._reference_waypoint = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         self._sink_distance = 2
 
@@ -117,7 +116,7 @@ class EnterActorFlow(BasicScenario):
 
         sequence = py_trees.composites.Sequence()
         if self.route_mode:
-            grp = CarlaDataProvider.get_global_route_planner()
+            grp = PanoSimDataProvider.get_global_route_planner()
             route = grp.trace_route(source_wp.transform.location, sink_wp.transform.location)
             extra_space = 20
             for i in range(-2, -len(route)-1, -1):
@@ -186,7 +185,7 @@ class EnterActorFlowV2(EnterActorFlow):
         exit_wp = exit_wp.next(10)[0]  # just in case the junction maneuvers don't match
 
         if self.route_mode:
-            grp = CarlaDataProvider.get_global_route_planner()
+            grp = PanoSimDataProvider.get_global_route_planner()
             route = grp.trace_route(source_wp.transform.location, sink_wp.transform.location)
             self._extra_space = 20
             for i in range(-2, -len(route)-1, -1):
@@ -244,7 +243,7 @@ class HighwayExit(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._start_actor_flow = convert_dict_to_location(config.other_parameters['start_actor_flow'])
@@ -271,7 +270,7 @@ class HighwayExit(BasicScenario):
         source_wp = self._map.get_waypoint(self._start_actor_flow)
         sink_wp = self._map.get_waypoint(self._end_actor_flow)
 
-        grp = CarlaDataProvider.get_global_route_planner()
+        grp = PanoSimDataProvider.get_global_route_planner()
         route = grp.trace_route(source_wp.transform.location, sink_wp.transform.location)
         junction_id = None
         for wp, _ in route:
@@ -329,11 +328,11 @@ class MergerIntoSlowTraffic(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         ego_location = config.trigger_points[0].location
-        self._reference_waypoint = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._reference_waypoint = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         self._start_actor_flow = convert_dict_to_location(config.other_parameters['start_actor_flow'])
         self._end_actor_flow = convert_dict_to_location(config.other_parameters['end_actor_flow'])
@@ -374,7 +373,7 @@ class MergerIntoSlowTraffic(BasicScenario):
         sequence = py_trees.composites.Sequence()
         if self.route_mode:
 
-            grp = CarlaDataProvider.get_global_route_planner()
+            grp = PanoSimDataProvider.get_global_route_planner()
             route = grp.trace_route(source_wp.transform.location, sink_wp.transform.location)
             extra_space = 0
             for i in range(-2, -len(route)-1, -1):
@@ -417,7 +416,7 @@ class MergerIntoSlowTraffic(BasicScenario):
 
 class MergerIntoSlowTrafficV2(MergerIntoSlowTraffic):
     """
-    Variation of MergerIntoSlowTraffic 
+    Variation of MergerIntoSlowTraffic
     """
 
     def _create_behavior(self):
@@ -442,7 +441,7 @@ class MergerIntoSlowTrafficV2(MergerIntoSlowTraffic):
         exit_wp = exit_wp.next(10)[0]  # just in case the junction maneuvers don't match
 
         if self.route_mode:
-            grp = CarlaDataProvider.get_global_route_planner()
+            grp = PanoSimDataProvider.get_global_route_planner()
             route = grp.trace_route(source_wp.transform.location, sink_wp.transform.location)
             self._extra_space = 20
             for i in range(-2, -len(route)-1, -1):
@@ -495,7 +494,7 @@ class InterurbanActorFlow(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._start_actor_flow = convert_dict_to_location(config.other_parameters['start_actor_flow'])
@@ -513,7 +512,7 @@ class InterurbanActorFlow(BasicScenario):
         route_entry_wp, route_exit_wp = self._get_entry_exit_route_lanes(self._reference_wp, config.route)
         route_exit_wp = route_exit_wp.next(8)[0]  # Just in case the junction maneuvers don't match
         other_entry_wp = route_exit_wp.get_left_lane()
-        if not other_entry_wp or other_entry_wp.lane_type != carla.LaneType.Driving:
+        if not other_entry_wp or other_entry_wp.lane_type != PanoSimLaneType.Driving:
             raise ValueError("Couldn't find an end position")
 
         self._source_wp = self._map.get_waypoint(self._start_actor_flow)
@@ -625,7 +624,7 @@ class InterurbanAdvancedActorFlow(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self.timeout = timeout
 
         self._sink_distance = 2
@@ -667,19 +666,19 @@ class InterurbanAdvancedActorFlow(BasicScenario):
         return exit_wp
 
     def _initialize_actors(self, config):
-        
+
         self._source_wp_1 = self._map.get_waypoint(self._start_actor_flow_1)
         self._sink_wp_1 = self._map.get_waypoint(self._end_actor_flow_1)
 
         self._source_wp_2 = self._sink_wp_1.get_left_lane()
-        if not self._source_wp_2 or self._source_wp_2.lane_type != carla.LaneType.Driving:
+        if not self._source_wp_2 or self._source_wp_2.lane_type != PanoSimLaneType.Driving:
             raise ValueError("Couldn't find a position for the actor flow")
         self._sink_wp_2 = self._source_wp_1.get_left_lane()
-        if not self._sink_wp_2 or self._sink_wp_2.lane_type != carla.LaneType.Driving:
+        if not self._sink_wp_2 or self._sink_wp_2.lane_type != PanoSimLaneType.Driving:
             raise ValueError("Couldn't find a position for the actor flow")
 
         if self.route_mode:
-            grp = CarlaDataProvider.get_global_route_planner()
+            grp = PanoSimDataProvider.get_global_route_planner()
             route = grp.trace_route(self._source_wp_2.transform.location, self._sink_wp_2.transform.location)
             self._extra_space = 20
             route_exit_wp = None
@@ -709,7 +708,7 @@ class InterurbanAdvancedActorFlow(BasicScenario):
         exit_wps = []
         exit_keys = []
 
-        for entry_wp, exit_wp in junction.get_waypoints(carla.LaneType.Driving):
+        for entry_wp, exit_wp in junction.get_waypoints(PanoSimLaneType.Driving):
 
             entry_wp = self._get_junction_entry_wp(entry_wp)
             entry_key = self.get_lane_key(entry_wp)

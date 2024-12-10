@@ -17,9 +17,8 @@ The ego vehicle may need to brake to avoid a collision.
 
 import random
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       LaneChange,
                                                                       WaypointFollower,
@@ -42,7 +41,7 @@ class CutIn(BasicScenario):
                  timeout=600):
 
         self.timeout = timeout
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._reference_waypoint = self._map.get_waypoint(config.trigger_points[0].location)
 
         self._velocity = 40
@@ -76,14 +75,14 @@ class CutIn(BasicScenario):
 
         # add actors from xml file
         for actor in config.other_actors:
-            vehicle = CarlaDataProvider.request_new_actor(actor.model, actor.transform)
+            vehicle = PanoSimDataProvider.request_new_actor(actor.model, actor.transform)
             self.other_actors.append(vehicle)
             vehicle.set_simulate_physics(enabled=False)
 
         # transform visible
         other_actor_transform = self.other_actors[0].get_transform()
-        self._transform_visible = carla.Transform(
-            carla.Location(other_actor_transform.location.x,
+        self._transform_visible = PanoSimTransform(
+            PanoSimLocation(other_actor_transform.location.x,
                            other_actor_transform.location.y,
                            other_actor_transform.location.z + 105),
             other_actor_transform.rotation)

@@ -12,10 +12,9 @@ from __future__ import print_function
 
 import math
 import py_trees
-import carla
 from math import floor
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimTransform, PanoSimRotation, PanoSimLaneType, PanoSimVehicleControl
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       KeepVelocity,
                                                                       Idle,
@@ -54,7 +53,7 @@ class StationaryObjectCrossing(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._reference_waypoint = self._wmap.get_waypoint(config.trigger_points[0].location)
         # ego vehicle parameters
         self._ego_vehicle_distance_driven = 40
@@ -82,13 +81,13 @@ class StationaryObjectCrossing(BasicScenario):
         offset = {"orientation": 270, "position": 90, "z": 0.4, "k": 0.2}
         position_yaw = waypoint.transform.rotation.yaw + offset['position']
         orientation_yaw = waypoint.transform.rotation.yaw + offset['orientation']
-        offset_location = carla.Location(
+        offset_location = PanoSimLocation(
             offset['k'] * lane_width * math.cos(math.radians(position_yaw)),
             offset['k'] * lane_width * math.sin(math.radians(position_yaw)))
         location += offset_location
         location.z += offset['z']
-        self.transform = carla.Transform(location, carla.Rotation(yaw=orientation_yaw))
-        static = CarlaDataProvider.request_new_actor('static.prop.container', self.transform)
+        self.transform = PanoSimTransform(location, PanoSimRotation(yaw=orientation_yaw))
+        static = PanoSimDataProvider.request_new_actor('static.prop.container', self.transform)
         static.set_simulate_physics(True)
         self.other_actors.append(static)
 
@@ -153,7 +152,7 @@ class DynamicObjectCrossing(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
         self._num_lane_changes = 0
@@ -203,16 +202,16 @@ class DynamicObjectCrossing(BasicScenario):
         new_rotation = waypoint.transform.rotation
         new_rotation.yaw += offset['yaw']
 
-        if waypoint.lane_type == carla.LaneType.Sidewalk:
+        if waypoint.lane_type == PanoSimLaneType.Sidewalk:
             new_location = waypoint.transform.location
         else:
             right_vector = waypoint.transform.get_right_vector()
             offset_dist = offset["k"]
-            offset_location = carla.Location(offset_dist * right_vector.x, offset_dist * right_vector.y)
+            offset_location = PanoSimLocation(offset_dist * right_vector.x, offset_dist * right_vector.y)
             new_location = waypoint.transform.location + offset_location
         new_location.z += offset['z']
 
-        return carla.Transform(new_location, new_rotation)
+        return PanoSimTransform(new_location, new_rotation)
 
     def _initialize_actors(self, config):
         """
@@ -233,7 +232,7 @@ class DynamicObjectCrossing(BasicScenario):
 
             # Move to the right
             sidewalk_waypoint = waypoint
-            while sidewalk_waypoint.lane_type != carla.LaneType.Sidewalk:
+            while sidewalk_waypoint.lane_type != PanoSimLaneType.Sidewalk:
                 if self._direction == "right":
                     side_wp = sidewalk_waypoint.get_right_lane()
                 else:
@@ -241,13 +240,13 @@ class DynamicObjectCrossing(BasicScenario):
                 if side_wp is None:
                     break  # No more side lanes
                 sidewalk_waypoint = side_wp
-                if side_wp.lane_type == carla.LaneType.Parking:
+                if side_wp.lane_type == PanoSimLaneType.Parking:
                     parking_location = side_wp.transform.location
 
             # Get the blocker transform and spawn it
             offset = {"yaw": 0 if 'vehicle' in self._blocker_model else 90, "z": 0.0, "k": 1.5}
             self._blocker_transform = self._get_sidewalk_transform(sidewalk_waypoint, offset)
-            blocker = CarlaDataProvider.request_new_actor(
+            blocker = PanoSimDataProvider.request_new_actor(
                 self._blocker_model, self._blocker_transform, rolename="scenario no lights")
             if not blocker:
                 self._number_of_attempts -= 1
@@ -264,7 +263,7 @@ class DynamicObjectCrossing(BasicScenario):
 
             offset = {"yaw": 270 - self._crossing_angle, "z": 1.2, "k": 1.2}
             self._adversary_transform = self._get_sidewalk_transform(walker_wp, offset)
-            adversary = CarlaDataProvider.request_new_actor('walker.*', self._adversary_transform)
+            adversary = PanoSimDataProvider.request_new_actor('walker.*', self._adversary_transform)
             if adversary is None:
                 blocker.destroy()
                 self._number_of_attempts -= 1
@@ -281,7 +280,7 @@ class DynamicObjectCrossing(BasicScenario):
             raise Exception("Couldn't find viable position for the adversary and blocker actors")
 
         blocker.set_simulate_physics(False)
-        adversary.set_location(self._adversary_transform.location + carla.Location(z=-200))
+        adversary.set_location(self._adversary_transform.location + PanoSimLocation(z=-200))
         adversary = self._replace_walker(adversary)
 
         if parking_location:
@@ -353,11 +352,11 @@ class DynamicObjectCrossing(BasicScenario):
         adversary.destroy()
         spawn_transform = self.ego_vehicles[0].get_transform()
         spawn_transform.location.z -= 50
-        adversary = CarlaDataProvider.request_new_actor(type_id, spawn_transform)
+        adversary = PanoSimDataProvider.request_new_actor(type_id, spawn_transform)
         if not adversary:
             raise ValueError("Couldn't spawn the walker substitute")
         adversary.set_simulate_physics(False)
-        adversary.set_location(spawn_transform.location + carla.Location(z=-50))
+        adversary.set_location(spawn_transform.location + PanoSimLocation(z=-50))
         return adversary
 
     def _setup_scenario_trigger(self, config):
@@ -392,7 +391,7 @@ class ParkingCrossingPedestrian(BasicScenario):
         """
         Setup all relevant parameters and create scenario
         """
-        self._wmap = CarlaDataProvider.get_map()
+        self._wmap = PanoSimDataProvider.get_map()
         self._trigger_location = config.trigger_points[0].location
         self._reference_waypoint = self._wmap.get_waypoint(self._trigger_location)
         self._num_lane_changes = 0
@@ -425,18 +424,18 @@ class ParkingCrossingPedestrian(BasicScenario):
 
     def _get_blocker_transform(self, waypoint):
         """Processes the driving wp to get a waypoint at the side that looks at the road"""
-        if waypoint.lane_type == carla.LaneType.Sidewalk:
+        if waypoint.lane_type == PanoSimLaneType.Sidewalk:
             new_location = waypoint.transform.location
         else:
             vector = waypoint.transform.get_right_vector()
             if self._direction == 'left':
                 vector *= -1
 
-            offset_location = carla.Location(waypoint.lane_width * vector.x, waypoint.lane_width * vector.y)
+            offset_location = PanoSimLocation(waypoint.lane_width * vector.x, waypoint.lane_width * vector.y)
             new_location = waypoint.transform.location + offset_location
         new_location.z += 0.5
 
-        return carla.Transform(new_location, waypoint.transform.rotation)
+        return PanoSimTransform(new_location, waypoint.transform.rotation)
 
     def _get_walker_transform(self, waypoint):
         """Processes the driving wp to get a waypoint at the side that looks at the road"""
@@ -444,18 +443,18 @@ class ParkingCrossingPedestrian(BasicScenario):
         new_rotation = waypoint.transform.rotation
         new_rotation.yaw += 270 - self._crossing_angle if self._direction == 'right' else 90 + self._crossing_angle
 
-        if waypoint.lane_type == carla.LaneType.Sidewalk:
+        if waypoint.lane_type == PanoSimLaneType.Sidewalk:
             new_location = waypoint.transform.location
         else:
             vector = waypoint.transform.get_right_vector()
             if self._direction == 'left':
                 vector *= -1
 
-            offset_location = carla.Location(waypoint.lane_width * vector.x, waypoint.lane_width * vector.y)
+            offset_location = PanoSimLocation(waypoint.lane_width * vector.x, waypoint.lane_width * vector.y)
             new_location = waypoint.transform.location + offset_location
         new_location.z += 1.2
 
-        return carla.Transform(new_location, new_rotation)
+        return PanoSimTransform(new_location, new_rotation)
 
     def _initialize_actors(self, config):
         """
@@ -470,12 +469,12 @@ class ParkingCrossingPedestrian(BasicScenario):
         # Get the adversary transform and spawn it
         self._blocker_transform = self._get_blocker_transform(blocker_wp)
         self.parking_slots.append(self._blocker_transform.location)
-        blocker = CarlaDataProvider.request_new_actor(
+        blocker = PanoSimDataProvider.request_new_actor(
             'vehicle.*', self._blocker_transform, attribute_filter=self._bp_attributes)
         if blocker is None:
             raise ValueError("Couldn't spawn the adversary")
         self.other_actors.append(blocker)
-        blocker.apply_control(carla.VehicleControl(hand_brake=True))
+        blocker.apply_control(PanoSimVehicleControl(hand_brake=True))
 
         walker_dist = blocker.bounding_box.extent.x + 0.5
         wps = blocker_wp.next(walker_dist)
@@ -487,13 +486,13 @@ class ParkingCrossingPedestrian(BasicScenario):
         self._walker_transform = self._get_walker_transform(walker_wp)
         self.parking_slots.append(self._walker_transform.location)
 
-        walker = CarlaDataProvider.request_new_actor('walker.*', self._walker_transform)
+        walker = PanoSimDataProvider.request_new_actor('walker.*', self._walker_transform)
         if walker is None:
             raise ValueError("Couldn't spawn the adversary")
 
-        walker.set_location(self._walker_transform.location + carla.Location(z=-200))
+        walker.set_location(self._walker_transform.location + PanoSimLocation(z=-200))
         walker = self._replace_walker(walker)
- 
+
         self.other_actors.append(walker)
 
         self._collision_wp = walker_wp
@@ -560,11 +559,11 @@ class ParkingCrossingPedestrian(BasicScenario):
         walker.destroy()
         spawn_transform = self.ego_vehicles[0].get_transform()
         spawn_transform.location.z -= 50
-        walker = CarlaDataProvider.request_new_actor(type_id, spawn_transform)
+        walker = PanoSimDataProvider.request_new_actor(type_id, spawn_transform)
         if not walker:
             raise ValueError("Couldn't spawn the walker substitute")
         walker.set_simulate_physics(False)
-        walker.set_location(spawn_transform.location + carla.Location(z=-50))
+        walker.set_location(spawn_transform.location + PanoSimLocation(z=-50))
         return walker
 
     def _setup_scenario_trigger(self, config):

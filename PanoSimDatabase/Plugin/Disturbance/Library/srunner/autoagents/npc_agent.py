@@ -9,11 +9,10 @@ This module provides an NPC agent to control the ego vehicle
 
 from __future__ import print_function
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimVehicleControl
 from agents.navigation.basic_agent import BasicAgent
 
 from srunner.autoagents.autonomous_agent import AutonomousAgent
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 
 class NpcAgent(AutonomousAgent):
@@ -62,13 +61,13 @@ class NpcAgent(AutonomousAgent):
 
             # Search for the ego actor
             hero_actor = None
-            for actor in CarlaDataProvider.get_world().get_actors():
+            for actor in PanoSimDataProvider.get_world().get_actors():
                 if 'role_name' in actor.attributes and actor.attributes['role_name'] == 'hero':
                     hero_actor = actor
                     break
 
             if not hero_actor:
-                return carla.VehicleControl()
+                return PanoSimVehicleControl()
 
             # Add an agent that follows the route to the ego
             self._agent = BasicAgent(hero_actor, 30)
@@ -76,14 +75,14 @@ class NpcAgent(AutonomousAgent):
             plan = []
             prev_wp = None
             for transform, _ in self._global_plan_world_coord:
-                wp = CarlaDataProvider.get_map().get_waypoint(transform.location)
+                wp = PanoSimDataProvider.get_map().get_waypoint(transform.location)
                 if prev_wp:
                     plan.extend(self._agent.trace_route(prev_wp, wp))
                 prev_wp = wp
 
             self._agent.set_global_plan(plan)
 
-            return carla.VehicleControl()
+            return PanoSimVehicleControl()
 
         else:
             return self._agent.run_step()

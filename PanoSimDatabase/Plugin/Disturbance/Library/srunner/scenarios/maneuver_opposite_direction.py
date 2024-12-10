@@ -15,9 +15,8 @@ from six.moves.queue import Queue   # pylint: disable=relative-import,bad-option
 
 import math  # pylint: disable=wrong-import-order
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTransform, PanoSimLocation
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorTransformSetter,
                                                                       ActorDestroy,
                                                                       ActorSource,
@@ -44,7 +43,7 @@ class ManeuverOppositeDirection(BasicScenario):
         obstacle_type -> flag to select type of leading obstacle. Values: vehicle, barrier
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
+        self._map = PanoSimDataProvider.get_map()
         self._first_vehicle_location = 50
         self._second_vehicle_location = self._first_vehicle_location + 60
         self._ego_vehicle_drive_distance = self._second_vehicle_location * 2
@@ -79,7 +78,7 @@ class ManeuverOppositeDirection(BasicScenario):
         second_actor_waypoint, _ = get_waypoint_in_distance(self._reference_waypoint, self._second_vehicle_location)
         second_actor_waypoint = second_actor_waypoint.get_left_lane()
 
-        first_actor_transform = carla.Transform(
+        first_actor_transform = PanoSimTransform(
             first_actor_waypoint.transform.location,
             first_actor_waypoint.transform.rotation)
         if self._obstacle_type == 'vehicle':
@@ -89,16 +88,16 @@ class ManeuverOppositeDirection(BasicScenario):
             first_actor_model = 'static.prop.streetbarrier'
             second_prop_waypoint = first_actor_waypoint.next(2.0)[0]
             position_yaw = second_prop_waypoint.transform.rotation.yaw + 90
-            offset_location = carla.Location(
+            offset_location = PanoSimLocation(
                 0.50 * second_prop_waypoint.lane_width * math.cos(math.radians(position_yaw)),
                 0.50 * second_prop_waypoint.lane_width * math.sin(math.radians(position_yaw)))
-            second_prop_transform = carla.Transform(
+            second_prop_transform = PanoSimTransform(
                 second_prop_waypoint.transform.location + offset_location, first_actor_transform.rotation)
-            second_prop_actor = CarlaDataProvider.request_new_actor(first_actor_model, second_prop_transform)
+            second_prop_actor = PanoSimDataProvider.request_new_actor(first_actor_model, second_prop_transform)
             second_prop_actor.set_simulate_physics(True)
-        first_actor = CarlaDataProvider.request_new_actor(first_actor_model, first_actor_transform)
+        first_actor = PanoSimDataProvider.request_new_actor(first_actor_model, first_actor_transform)
         first_actor.set_simulate_physics(True)
-        second_actor = CarlaDataProvider.request_new_actor('vehicle.audi.tt', second_actor_waypoint.transform)
+        second_actor = PanoSimDataProvider.request_new_actor('vehicle.audi.tt', second_actor_waypoint.transform)
 
         self.other_actors.append(first_actor)
         self.other_actors.append(second_actor)

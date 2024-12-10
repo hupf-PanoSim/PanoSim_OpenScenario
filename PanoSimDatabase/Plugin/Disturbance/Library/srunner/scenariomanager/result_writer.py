@@ -111,7 +111,9 @@ class ResultOutputProvider(object):
             else:
                 name += " (Req.)"
 
-            actor = "{} (id={})".format(criterion.actor.type_id[8:], criterion.actor.id)
+            # modified by hupf, for run success
+            # actor = "{} (id={})".format(criterion.actor.type_id[8:], criterion.actor.id)
+            actor = "{} (id={})".format(criterion.actor.model[8:], criterion.actor.id)
 
             list_statistics.extend([[
                 actor, name, criterion.test_status, criterion.actual_value, criterion.success_value]])

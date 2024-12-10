@@ -11,7 +11,7 @@ This module provides an example longitudinal control for vehicles
 
 import math
 
-import carla
+from srunner.scenariomanager.data_provider import PanoSimVector3D
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 
@@ -70,4 +70,4 @@ class VehicleLongitudinalControl(BasicControl):
                 yaw = self._actor.get_transform().rotation.yaw * (math.pi / 180)
                 vx = math.cos(yaw) * self._target_speed
                 vy = math.sin(yaw) * self._target_speed
-                self._actor.set_target_velocity(carla.Vector3D(vx, vy, 0))
+                self._actor.set_target_velocity(PanoSimVector3D(vx, vy, 0))

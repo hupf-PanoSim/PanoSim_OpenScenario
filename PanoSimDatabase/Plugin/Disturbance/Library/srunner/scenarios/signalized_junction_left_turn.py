@@ -12,9 +12,7 @@ is making a left turn
 import py_trees
 from numpy import random
 
-import carla
-
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimTrafficLightState
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import ActorFlow, TrafficLightFreezer, ScenarioTimeout
 from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitEndIntersection, DriveDistance
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest, ScenarioTimeoutTest
@@ -55,8 +53,8 @@ class JunctionLeftTurn(BasicScenario):
         Setup all relevant parameters and create scenario
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
-        self._rng = CarlaDataProvider.get_random_seed()
+        self._map = PanoSimDataProvider.get_map()
+        self._rng = PanoSimDataProvider.get_random_seed()
 
         self.timeout = timeout
 
@@ -88,7 +86,7 @@ class JunctionLeftTurn(BasicScenario):
         Override this method in child class to provide custom initialization.
         """
         ego_location = config.trigger_points[0].location
-        self._ego_wp = CarlaDataProvider.get_map().get_waypoint(ego_location)
+        self._ego_wp = PanoSimDataProvider.get_map().get_waypoint(ego_location)
 
         # Get the junction
         starting_wp = self._ego_wp
@@ -178,14 +176,14 @@ class SignalizedJunctionLeftTurn(JunctionLeftTurn):
 
         for tl in tls:
             if tl.id == ego_tl.id:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Green
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Green
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
             elif tl.id == source_tl.id:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Green
-                self._init_tl_dict[tl] = carla.TrafficLightState.Green
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Green
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Green
             else:
-                self._flow_tl_dict[tl] = carla.TrafficLightState.Red
-                self._init_tl_dict[tl] = carla.TrafficLightState.Red
+                self._flow_tl_dict[tl] = PanoSimTrafficLightState.Red
+                self._init_tl_dict[tl] = PanoSimTrafficLightState.Red
 
     def _create_behavior(self):
         """

@@ -12,9 +12,8 @@ Scenario in which the ego is parked between two vehicles and has to maneuver to 
 from __future__ import print_function
 
 import py_trees
-import carla
 
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.data_provider import PanoSimDataProvider, PanoSimLocation, PanoSimVehicleControl
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
                                                                       ActorTransformSetter,
                                                                       WaitForever,
@@ -31,7 +30,7 @@ def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
-    location = carla.Location(
+    location = PanoSimLocation(
         x=float(actor_dict['x']),
         y=float(actor_dict['y']),
         z=float(actor_dict['z'])
@@ -66,9 +65,8 @@ class ParkingExit(BasicScenario):
         and instantiate scenario manager
         """
         self._world = world
-        self._map = CarlaDataProvider.get_map()
-        self._tm = CarlaDataProvider.get_client().get_trafficmanager(
-            CarlaDataProvider.get_traffic_manager_port())
+        self._map = PanoSimDataProvider.get_map()
+        self._tm = PanoSimDataProvider.get_client().get_trafficmanager(PanoSimDataProvider.get_traffic_manager_port())
         self.timeout = timeout
 
         self._bp_attributes = {'base_type': 'car', 'generation': 2}
@@ -118,11 +116,10 @@ class ParkingExit(BasicScenario):
 
         self.parking_slots.append(front_points[0].transform.location)
 
-        actor_front = CarlaDataProvider.request_new_actor(
-            'vehicle.*', front_points[0].transform, rolename='scenario no lights', attribute_filter=self._bp_attributes)
+        actor_front = PanoSimDataProvider.request_new_actor('vehicle.*', front_points[0].transform, rolename='scenario no lights', attribute_filter=self._bp_attributes)
         if actor_front is None:
             raise ValueError("Couldn't spawn the vehicle in front of the parking point")
-        actor_front.apply_control(carla.VehicleControl(hand_brake=True))
+        actor_front.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(actor_front)
 
         # And move it to the side
@@ -137,12 +134,11 @@ class ParkingExit(BasicScenario):
 
         self.parking_slots.append(behind_points[0].transform.location)
 
-        actor_behind = CarlaDataProvider.request_new_actor(
-            'vehicle.*', behind_points[0].transform, rolename='scenario no lights', attribute_filter=self._bp_attributes)
+        actor_behind = PanoSimDataProvider.request_new_actor('vehicle.*', behind_points[0].transform, rolename='scenario no lights', attribute_filter=self._bp_attributes)
         if actor_behind is None:
             actor_front.destroy()
             raise ValueError("Couldn't spawn the vehicle behind the parking point")
-        actor_behind.apply_control(carla.VehicleControl(hand_brake=True))
+        actor_behind.apply_control(PanoSimVehicleControl(hand_brake=True))
         self.other_actors.append(actor_behind)
 
         # And move it to the side
@@ -155,8 +151,7 @@ class ParkingExit(BasicScenario):
         self.ego_vehicles[0].set_location(self._ego_location)
 
         # Spawn the actor at the side of the ego
-        actor_side = CarlaDataProvider.request_new_actor(
-            'vehicle.*', self._reference_waypoint.transform, attribute_filter=self._bp_attributes)
+        actor_side = PanoSimDataProvider.request_new_actor('vehicle.*', self._reference_waypoint.transform, attribute_filter=self._bp_attributes)
         if actor_side is None:
             raise ValueError("Couldn't spawn the vehicle at the side of the parking point")
         self.other_actors.append(actor_side)
@@ -175,7 +170,7 @@ class ParkingExit(BasicScenario):
         if self._direction == 'left':
             displacement_vector *= -1
 
-        new_location = wp.transform.location + carla.Location(x=displacement*displacement_vector.x,
+        new_location = wp.transform.location + PanoSimLocation(x=displacement*displacement_vector.x,
                                                               y=displacement*displacement_vector.y,
                                                               z=displacement*displacement_vector.z)
         new_location.z += 0.05  # Just in case, avoid collisions with the ground
