@@ -349,8 +349,12 @@ def ModelStart(userData):
     arguments.json = False
     arguments.junit = False
     arguments.list = False
-    # arguments.openscenario = 'srunner/examples/FollowLeadingVehicle.xosc'
-    arguments.openscenario = 'D:\PanoSim5\PanoSimDatabaseHowTo\Plugin\Disturbance\Library\srunner/examples/FollowLeadingVehicle.xosc'
+    scenario = os.environ['PanoSimDatabaseHome']
+    scenario += '/Plugin/Disturbance/Library/srunner/examples/'
+    scenario += userData['parameters']['scenario']
+    scenario += '.xosc'
+    arguments.openscenario = scenario
+    # arguments.openscenario = 'D:\PanoSim5\PanoSimDatabaseHowTo\Plugin\Disturbance\Library\srunner/examples/FollowLeadingVehicle.xosc'
     arguments.openscenario2 = None
     arguments.openscenarioparams = None
     arguments.output = True

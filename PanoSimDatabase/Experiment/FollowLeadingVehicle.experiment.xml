@@ -21,7 +21,7 @@
   </Task>
   <TrafficObjects />
   <Disturbance>
-    <Plugin link="OpenScenario_Player.py" hostId="0" nodeId="0" Parameters="" Parameter="False" />
+    <Plugin link="OpenScenario_Player.py" hostId="0" nodeId="0" scenario="FollowLeadingVehicle" Parameter="True" />
   </Disturbance>
   <Agent>
     <Plugin internal="false" hostId="0" nodeId="0" link="KeyboardControl.py" Throttle="0.3" Brake="5" Steer="180" Parameter="False" />

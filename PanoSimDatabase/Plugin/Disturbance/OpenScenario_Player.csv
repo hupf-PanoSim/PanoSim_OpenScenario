@@ -1,0 +1,2 @@
+Name,DisplayName,Type,Default,Group,SubGroup,Tips,Include,Exclude,Switch,Visible
+scenario,Scenario,FollowLeadingVehicle/LaneChangeSimple/LaneOffsetActionExample/OscControllerExample/PedestrianCrossingFront/Slalom/StoryAddEntityAction/StoryDeleteEntityAction/CatalogExample/ChangingWeather/CyclistCrossing/InitAddEntityAction/InitDeleteEntityAction/IntersectionCollisionAvoidance/SyncArrivalIntersection/VehicleLateralDistance,FollowLeadingVehicle,,,,,,,
