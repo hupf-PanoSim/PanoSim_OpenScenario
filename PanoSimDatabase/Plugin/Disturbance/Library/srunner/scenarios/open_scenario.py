@@ -139,9 +139,7 @@ class OpenScenario(BasicScenario):
         actor_list = self.other_actors + self.ego_vehicles + [None]
         for actor in self.config.other_actors + self.config.ego_vehicles:
             for carla_actor in self.other_actors + self.ego_vehicles:
-                # modified by hupf, for run success
-                # if (carla_actor is not None and 'role_name' in carla_actor.attributes and carla_actor.attributes['role_name'] == actor.rolename):
-                if carla_actor is not None and carla_actor.rolename == actor.rolename:
+                if (carla_actor is not None and 'role_name' in carla_actor.attributes and carla_actor.attributes['role_name'] == actor.rolename):
                     actor_init_behavior = py_trees.composites.Sequence(name="InitActor{}".format(actor.rolename))
 
                     controller_atomic = None
@@ -250,9 +248,7 @@ class OpenScenario(BasicScenario):
                             for entity in actor.iter("EntityRef"):
                                 entity_name = entity.attrib.get('entityRef', None)
                                 for k, _ in enumerate(joint_actor_list):
-                                    # modified by hupf, for run success
-                                    # if (joint_actor_list[k] and entity_name == joint_actor_list[k].attributes['role_name']):
-                                    if (joint_actor_list[k] and entity_name == joint_actor_list[k].rolename):
+                                    if (joint_actor_list[k] and entity_name == joint_actor_list[k].attributes['role_name']):
                                         actor_ids.append(k)
                                         break
 
@@ -422,13 +418,19 @@ class OpenScenario(BasicScenario):
     def create_actor(self):
         for actor in self.other_actors:
             if actor.id < 0:
-                ds = actor.transform.data['ds']
-                dt = actor.transform.data['dt']
-                Relative = actor.transform.data['Relative']
-                Relative = Relative.data
-                roadId = Relative['roadId']
-                s = Relative['s']
-                t = Relative['t']
-                actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, vehicle_type.Car, 17)
-                if actor.id > 0:
-                    stopVehicle(actor.id, 0)
+                if actor.transform.type == 'WorldPosition':
+                    x = actor.transform.location.x
+                    y = actor.transform.location.y * -1
+                    # from net.xml: netOffset="503.02,423.76"
+                    x += 503.02
+                    y += 423.76
+                    actor.id = addVehicle(x, y, 0, vehicle_type.Car)
+                elif actor.transform.type == 'RelativeRoadPosition':
+                    ds = actor.transform.data['ds']
+                    dt = actor.transform.data['dt']
+                    Relative = actor.transform.data['Relative']
+                    Relative = Relative.data
+                    roadId = Relative['roadId']
+                    s = Relative['s']
+                    t = Relative['t']
+                    actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, vehicle_type.Car)

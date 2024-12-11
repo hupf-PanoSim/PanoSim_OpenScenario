@@ -104,16 +104,30 @@ class ActorControl(object):
             start_time (float): Start time of the new "maneuver" [s].
         """
         self.control_instance.update_target_speed(target_speed)
-        id = self.control_instance._actor.id
-        if target_speed < 0.01:
-            if not isStopped(id):
-                stopVehicle(id, 20)
-        else:
-            if isStopped(id):
-                cancelStopVehicle(id)
-            changeSpeed(id, target_speed, 0.1)
+        self.control_instance._actor.speed = target_speed
         if start_time:
             self._last_longitudinal_command = start_time
+
+    def get_current_lane_id(self, id):
+        return getVehicleLane(id)
+
+    def change_lane(self, id, direction, distance, start_time=None):
+        if id > 100:
+            lane_id = self.get_current_lane_id(id)
+            target_lane_id = ''
+            _direction = change_lane_direction.left
+            if direction == 'left':
+                _direction = change_lane_direction.left
+                target_lane_id = getLeftLane(lane_id)
+            else:
+                _direction = change_lane_direction.right
+                target_lane_id = getRightLane(lane_id)
+            
+            duration = distance / getVehicleSpeed(id)
+            print('change_lane:', id, _direction, duration, lane_id, target_lane_id)
+        if start_time:
+            self._last_waypoint_command = start_time
+        return target_lane_id
 
     def update_waypoints(self, waypoints, start_time=None):
         """

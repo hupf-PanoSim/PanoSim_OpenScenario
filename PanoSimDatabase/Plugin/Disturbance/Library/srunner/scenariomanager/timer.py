@@ -45,7 +45,6 @@ class GameTime(object):
             GameTime._platform_timestamp = datetime.datetime.now()
             GameTime._init = True
             GameTime._carla_time = timestamp.elapsed_seconds
-            # print('GameTime:on_carla_tick:', GameTime._current_game_time, GameTime._last_frame)
 
     @staticmethod
     def restart():

@@ -940,15 +940,12 @@ class ChangeActorLateralMotion(AtomicBehavior):
     """
     Atomic to change the waypoints for an actor controller.
 
-    The behavior is in RUNNING state until the last waypoint is reached, or if a
-    second waypoint related atomic for the same actor is triggered. These are:
+    The behavior is in RUNNING state until the last waypoint is reached, or if a second waypoint related atomic for the same actor is triggered. These are:
     - ChangeActorWaypoints
     - ChangeActorLateralMotion
     - ChangeActorLaneOffset
 
-    If an impossible lane change is asked for (due to the lack of lateral lanes,
-    next waypoints, continuous line, etc) the atomic will return a plan with the
-    waypoints until such impossibility is found.
+    If an impossible lane change is asked for (due to the lack of lateral lanes, next waypoints, continuous line, etc) the atomic will return a plan with the waypoints until such impossibility is found.
 
     Args:
         actor (carla.Actor): Controlled actor.
@@ -1019,6 +1016,9 @@ class ChangeActorLateralMotion(AtomicBehavior):
 
         self._start_time = GameTime.get_time()
 
+        self._target_lane_id = actor_dict[self._actor.id].change_lane(self._actor.id, self._direction, self._distance_lane_change, start_time=self._start_time)
+
+        ''' masked by hupf, for run success
         # get start position
         position_actor = PanoSimDataProvider.get_map().get_waypoint(PanoSimDataProvider.get_location(self._actor))
 
@@ -1032,7 +1032,7 @@ class ChangeActorLateralMotion(AtomicBehavior):
                 self._waypoints.append(elem[0].transform)
 
         actor_dict[self._actor.id].update_waypoints(self._waypoints, start_time=self._start_time)
-
+        '''
         super(ChangeActorLateralMotion, self).initialise()
 
     def update(self):
@@ -1045,7 +1045,6 @@ class ChangeActorLateralMotion(AtomicBehavior):
             py_trees.common.Status.FAILURE, if the actor is not found in ActorsWithController Blackboard dictionary.
             py_trees.common.Status.FAILURE, else.
         """
-
         try:
             check_actors = operator.attrgetter("ActorsWithController")
             actor_dict = check_actors(py_trees.blackboard.Blackboard())
@@ -1055,40 +1054,48 @@ class ChangeActorLateralMotion(AtomicBehavior):
         if not actor_dict or not self._actor.id in actor_dict:
             return py_trees.common.Status.FAILURE
 
-        if not self._plan:
-            print("{} couldn't perform the expected lane change".format(self._actor))
-            return py_trees.common.Status.FAILURE
+        # masked by hupf, for run success
+        # if not self._plan:
+        #     print("{} couldn't perform the expected lane change".format(self._actor))
+        #     return py_trees.common.Status.FAILURE
 
         if actor_dict[self._actor.id].get_last_waypoint_command() != self._start_time:
             return py_trees.common.Status.SUCCESS
 
         new_status = py_trees.common.Status.RUNNING
 
-        current_position_actor = PanoSimDataProvider.get_map().get_waypoint(self._actor.get_location())
-        current_lane_id = current_position_actor.lane_id
+        # masked by hupf, for run success
+        # current_position_actor = PanoSimDataProvider.get_map().get_waypoint(self._actor.get_location())
+        # modified by hupf, for run success
+        # current_lane_id = current_position_actor.lane_id
+        current_lane_id = actor_dict[self._actor.id].get_current_lane_id(self._actor.id)
 
         if current_lane_id == self._target_lane_id:
             # driving on new lane
-            distance = current_position_actor.transform.location.distance(self._pos_before_lane_change)
+            # modified by hupf, for run success
+            # distance = current_position_actor.transform.location.distance(self._pos_before_lane_change)
+            distance = PanoSimDataProvider.get_location(self._actor).distance(self._pos_before_lane_change)
 
             if distance > self._distance_other_lane:
                 # long enough distance on new lane --> SUCCESS
                 new_status = py_trees.common.Status.SUCCESS
 
                 new_waypoints = []
-                map_wp = current_position_actor
-                while len(new_waypoints) < 200:
-                    map_wps = map_wp.next(2.0)
-                    if map_wps:
-                        new_waypoints.append(map_wps[0].transform)
-                        map_wp = map_wps[0]
-                    else:
-                        break
+                # masked by hupf, for run success
+                # map_wp = current_position_actor
+                # while len(new_waypoints) < 200:
+                #     map_wps = map_wp.next(2.0)
+                #     if map_wps:
+                #         new_waypoints.append(map_wps[0].transform)
+                #         map_wp = map_wps[0]
+                #     else:
+                #         break
 
                 actor_dict[self._actor.id].update_waypoints(new_waypoints, start_time=self._start_time)
-
         else:
-            self._pos_before_lane_change = current_position_actor.transform.location
+            # masked by hupf, for run success
+            # self._pos_before_lane_change = current_position_actor.transform.location
+            self._pos_before_lane_change = PanoSimDataProvider.get_location(self._actor)
 
         return new_status
 
@@ -1887,7 +1894,6 @@ class KeepVelocity(AtomicBehavior):
         For walkers: simply apply the given self._control
         """
         new_status = py_trees.common.Status.RUNNING
-        print('KeepVelocity:update:', self._actor.id, self._forced_speed)
 
         if self._type == 'vehicle':
             if not self._forced_speed:
@@ -2029,7 +2035,6 @@ class StopVehicle(AtomicBehavior):
         Set brake to brake_value until reaching full stop
         """
         new_status = py_trees.common.Status.RUNNING
-        print('StopVehicle:update:', self._actor.id)
 
         if self._type == 'vehicle':
             if PanoSimDataProvider.get_velocity(self._actor) > EPSILON:

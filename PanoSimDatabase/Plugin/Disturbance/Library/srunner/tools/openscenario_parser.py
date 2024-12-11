@@ -644,7 +644,9 @@ class OpenScenarioParser(object):
             if not OpenScenarioParser.use_carla_coordinate_system:
                 y = y * (-1.0)
                 yaw = yaw * (-1.0)
-            return PanoSimTransform(PanoSimLocation(x=x, y=y, z=z), PanoSimRotation(yaw=yaw, pitch=pitch, roll=roll))
+            transform = PanoSimTransform(PanoSimLocation(x=x, y=y, z=z), PanoSimRotation(yaw=yaw, pitch=pitch, roll=roll))
+            transform.type = 'WorldPosition'
+            return transform
 
         elif ((position.find('RelativeWorldPosition') is not None) or
               (position.find('RelativeObjectPosition') is not None) or
@@ -888,8 +890,7 @@ class OpenScenarioParser(object):
             for triggering_entities in condition.find('ByEntityCondition').iter('TriggeringEntities'):
                 for entity in triggering_entities.iter('EntityRef'):
                     for actor in actor_list:
-                        # if actor is not None and entity.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                        if actor is not None and entity.attrib.get('entityRef', None) == actor.rolename:
+                        if actor is not None and entity.attrib.get('entityRef', None) == actor.attributes['role_name']:
                             trigger_actor = actor
                             break
 
@@ -904,9 +905,7 @@ class OpenScenarioParser(object):
                     if collision_condition.find('EntityRef') is not None:
                         collision_entity = collision_condition.find('EntityRef')
                         for actor in actor_list:
-                            # modified by hupf, for run success
-                            # if collision_entity.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                            if collision_entity.attrib.get('entityRef', None) == actor.rolename:
+                            if collision_entity.attrib.get('entityRef', None) == actor.attributes['role_name']:
                                 triggered_actor = actor
                                 break
 
@@ -938,9 +937,7 @@ class OpenScenarioParser(object):
                     condition_freespace = strtobool(headtime_condition.attrib.get('freespace', False))
                     condition_along_route = strtobool(headtime_condition.attrib.get('alongRoute', False))
                     for actor in actor_list:
-                        # modified by hupf, for run success
-                        # if headtime_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                        if headtime_condition.attrib.get('entityRef', None) == actor.rolename:
+                        if headtime_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
                             triggered_actor = actor
                             break
                     if triggered_actor is None:
@@ -960,9 +957,7 @@ class OpenScenarioParser(object):
                         atomic = InTimeToArrivalToOSCPosition(trigger_actor, position, condition_value, condition_along_route, condition_operator)
                     else:
                         for actor in actor_list:
-                            # modified by hupf, for run success
-                            # if entity_ref_.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                            if entity_ref_.attrib.get('entityRef', None) == actor.rolename:
+                            if entity_ref_.attrib.get('entityRef', None) == actor.attributes['role_name']:
                                 triggered_actor = actor
                                 break
                         if triggered_actor is None:
@@ -990,9 +985,7 @@ class OpenScenarioParser(object):
                     condition_rule = relspd_condition.attrib.get('rule')
                     condition_operator = OpenScenarioParser.operators[condition_rule]
                     for actor in actor_list:
-                        # modified by hupf, for run success
-                        # if relspd_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                        if relspd_condition.attrib.get('entityRef', None) == actor.rolename:
+                        if relspd_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
                             triggered_actor = actor
                             break
                     if triggered_actor is None:
@@ -1028,9 +1021,7 @@ class OpenScenarioParser(object):
                             if position.find('RelativeRoadPosition') is not None:
                                 rel_pos = position.find('RelativeRoadPosition')
                             for _actor in actor_list:
-                                # modified by hupf, for run success
-                                # if rel_pos.attrib.get('entityRef', None) == _actor.attributes['role_name']:
-                                if rel_pos.attrib.get('entityRef', None) == _actor.rolename:
+                                if rel_pos.attrib.get('entityRef', None) == _actor.attributes['role_name']:
                                     triggered_actor = _actor
                                     break
                             if triggered_actor is None:
@@ -1044,9 +1035,7 @@ class OpenScenarioParser(object):
                     distance_freespace = distance_condition.attrib.get('freespace', "false") == "true"
                     rel_dis_type = distance_condition.attrib.get('relativeDistanceType')
                     for actor in actor_list:
-                        # modified by hupf, for run success
-                        # if distance_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
-                        if distance_condition.attrib.get('entityRef', None) == actor.rolename:
+                        if distance_condition.attrib.get('entityRef', None) == actor.attributes['role_name']:
                             triggered_actor = actor
                             break
 

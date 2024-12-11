@@ -447,15 +447,13 @@ class PanoSimActor:
         # vehicle.lincoln.mkz_2017
         self.model = None
 
-        # hero
-        self.rolename = None
-
         self.world = PanoSimWorld()
         self.ctrl = PanoSimControl()
 
         # car
         self.actor_category = None
         self.is_alive = True
+        self.speed = 0
         self.bounding_box = PanoSimBoundingBox()
 
     def get_transform(self):
@@ -682,7 +680,11 @@ class PanoSimDataProvider(object):
         with PanoSimDataProvider._lock:
             for actor in PanoSimDataProvider._actor_velocity_map:
                 if actor is not None and actor.is_alive:
-                    speed = getVehicleSpeed(actor.id)
+                    if actor.id > 100:
+                        changeSpeed(actor.id, actor.speed, 0)
+                        speed = actor.speed
+                    else:
+                        speed = getVehicleSpeed(actor.id)
                     PanoSimDataProvider._actor_velocity_map[actor] = speed
                     # PanoSimDataProvider._actor_velocity_map[actor] = calculate_velocity(actor)
 
@@ -1098,7 +1100,7 @@ class PanoSimDataProvider(object):
         actor = PanoSimActor()
         actor.id = 0
         actor.model = model
-        actor.rolename = rolename
+        actor.attributes['role_name'] = rolename
         actor.actor_category = actor_category
         actor.transform = spawn_point
         PanoSimDataProvider._actor_pool[actor.id] = actor
@@ -1121,7 +1123,7 @@ class PanoSimDataProvider(object):
             new = PanoSimActor()
             new.id = -1
             new.model = actor.model
-            new.rolename = actor.rolename
+            new.attributes['role_name'] = actor.rolename
             new.actor_category = actor.category
             new.transform = actor.transform
             PanoSimDataProvider._actor_pool[new.id] = new
