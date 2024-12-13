@@ -187,8 +187,8 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
                         self._extract_vehicle_information(entry, rolename, entry, args)
                     elif entry.tag == "Pedestrian":
                         self._extract_pedestrian_information(entry, rolename, entry, args)
-                    elif entry.tag == "MiscObject":
-                        self._extract_misc_information(entry, rolename, entry, args)
+                    # elif entry.tag == "MiscObject":
+                    #     self._extract_misc_information(entry, rolename, entry, args)
                     else:
                         self.logger.debug(" A CatalogReference specifies a reference that is not an Entity. Skipping...")
 
@@ -198,8 +198,8 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
                 for pedestrian in obj.iter("Pedestrian"):
                     self._extract_pedestrian_information(obj, rolename, pedestrian, args)
 
-                for misc in obj.iter("MiscObject"):
-                    self._extract_misc_information(obj, rolename, misc, args)
+                # for misc in obj.iter("MiscObject"):
+                #     self._extract_misc_information(obj, rolename, misc, args)
 
         all_actor_transforms_set = False
         while not all_actor_transforms_set:
