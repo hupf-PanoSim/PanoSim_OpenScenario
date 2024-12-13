@@ -836,11 +836,20 @@ class OpenScenarioParser(object):
             lane_id = int(ParameterRef(lane_pos.attrib.get('laneId', 0)))
             offset = float(ParameterRef(lane_pos.attrib.get('offset', 0)))
             s = float(ParameterRef(lane_pos.attrib.get('s', 0)))
-            waypoint = PanoSimDataProvider.get_map().get_waypoint_xodr(road_id, lane_id, s)
-            if waypoint is None:
-                raise AttributeError("LanePosition 'roadId={}, laneId={}, s={}, offset={}' does not exist".format(road_id, lane_id, s, offset))
+            # modified by hupf, for run success
+            # waypoint = PanoSimDataProvider.get_map().get_waypoint_xodr(road_id, lane_id, s)
+            # if waypoint is None:
+            #     raise AttributeError("LanePosition 'roadId={}, laneId={}, s={}, offset={}' does not exist".format(road_id, lane_id, s, offset))
 
-            transform = waypoint.transform
+            # transform = waypoint.transform
+            transform = PanoSimTransform()
+
+            transform.type = 'LanePosition'
+            transform.data['road_id'] = road_id
+            transform.data['lane_id'] = lane_id
+            transform.data['offset'] = offset
+            transform.data['s'] = s
+
             if lane_pos.find('Orientation') is not None:
                 orientation = lane_pos.find('Orientation')
                 dyaw = math.degrees(float(ParameterRef(orientation.attrib.get('h', 0))))

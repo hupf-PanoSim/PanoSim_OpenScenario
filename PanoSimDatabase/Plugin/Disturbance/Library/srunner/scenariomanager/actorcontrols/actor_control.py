@@ -124,7 +124,7 @@ class ActorControl(object):
                 target_lane_id = getRightLane(lane_id)
             
             duration = distance / getVehicleSpeed(id)
-            print('change_lane:', id, _direction, duration, lane_id, target_lane_id)
+            changeLane(id, _direction, duration)
         if start_time:
             self._last_waypoint_command = start_time
         return target_lane_id
@@ -150,6 +150,10 @@ class ActorControl(object):
             start_time (float): Start time of the new "maneuver" [s].
         """
         self.control_instance.update_offset(offset)
+        id = self.control_instance._actor.id
+        if id > 100:
+            changeLateralOffset(id, offset * -1)
+        
         if start_time:
             self._last_waypoint_command = start_time
             self._last_lane_offset_command = start_time

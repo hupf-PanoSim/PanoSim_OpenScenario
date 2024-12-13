@@ -676,6 +676,30 @@ class PanoSimDataProvider(object):
             PanoSimDataProvider.register_actor(actor, transform)
 
     @staticmethod
+    def keep_route():
+        direction2route = {
+            next_junction_direction.straight: route_type.straight,
+            next_junction_direction.left: route_type.left,
+            next_junction_direction.right: route_type.right,
+            next_junction_direction.u_turn: route_type.turn_round
+        }
+        for id in getVehicleList():
+            if id > 100 and getRoute(id) == next_junction_direction.unknown:
+                current_lane = getVehicleLane(id)
+                if len(current_lane) > 0:
+                    directions = getValidDirections(current_lane)
+                    if len(directions) > 0:
+                        changeRoute(id, direction2route[directions[0]])
+                    else:
+                        junction = getToJunction(current_lane)
+                        if len(junction) > 0:
+                            for lane in getIncomingLanes(junction):
+                                directions = getValidDirections(lane)
+                                if len(directions) > 0:
+                                    changeRoute(id, direction2route[directions[0]])
+                                    break
+
+    @staticmethod
     def on_carla_tick():
         with PanoSimDataProvider._lock:
             for actor in PanoSimDataProvider._actor_velocity_map:
@@ -695,6 +719,8 @@ class PanoSimDataProvider(object):
             for actor in PanoSimDataProvider._actor_transform_map:
                 if actor is not None and actor.is_alive:
                     PanoSimDataProvider._actor_transform_map[actor] = actor.get_transform()
+
+            PanoSimDataProvider.keep_route()
 
             world = PanoSimDataProvider._world
             if world is None:
@@ -1126,6 +1152,7 @@ class PanoSimDataProvider(object):
             new.attributes['role_name'] = actor.rolename
             new.actor_category = actor.category
             new.transform = actor.transform
+            new.speed = 0
             PanoSimDataProvider._actor_pool[new.id] = new
             PanoSimDataProvider.register_actor(new, new.transform)
             actors.append(new)

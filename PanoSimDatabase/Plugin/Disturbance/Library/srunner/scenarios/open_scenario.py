@@ -415,15 +415,22 @@ class OpenScenario(BasicScenario):
             for new_actor in new_actors:
                 self.other_actors.append(new_actor)
 
-    def create_actor(self):
+    def create_actor(self, userData):
+        offsetX, offsetY = 0, 0
+        town = userData['config'].town
+        if town == 'Town01':
+            # from town01 net.xml: netOffset="0.06,328.61"
+            offsetX = 0.06
+            offsetY = 328.61
+        elif town == 'Town04':
+            # from town04 net.xml: netOffset="503.02,423.76"
+            offsetX = 503.02
+            offsetY = 423.76
         for actor in self.other_actors:
             if actor.id < 0:
                 if actor.transform.type == 'WorldPosition':
-                    x = actor.transform.location.x
-                    y = actor.transform.location.y * -1
-                    # from net.xml: netOffset="503.02,423.76"
-                    x += 503.02
-                    y += 423.76
+                    x = actor.transform.location.x + offsetX
+                    y = actor.transform.location.y * -1 + offsetY
                     actor.id = addVehicle(x, y, 0, vehicle_type.Car)
                 elif actor.transform.type == 'RelativeRoadPosition':
                     ds = actor.transform.data['ds']
@@ -434,3 +441,7 @@ class OpenScenario(BasicScenario):
                     s = Relative['s']
                     t = Relative['t']
                     actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, vehicle_type.Car)
+                elif actor.transform.type == 'RoadPosition':
+                    print('create_actor:', actor.id, actor.transform.type, actor.transform.data)
+                elif actor.transform.type == 'LanePostion':
+                    print('create_actor:', actor.id, actor.transform.type, actor.transform.data)

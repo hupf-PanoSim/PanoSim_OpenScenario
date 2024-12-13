@@ -256,14 +256,6 @@ class ScenarioRunner(object):
             self._cleanup()
             return False
 
-        # for c1 in userData['scenario'].criteria_tree.children:
-        #     for c2 in c1.children:
-        #         print('criteria_tree:', c2.name, c2.actor.id, c2.actor.rolename)
-
-        # for c1 in userData['scenario'].criteria_tree.children:
-        #     for c2 in c1.children:
-        #         print('criteria_tree:', c2.name, c2.actor.id, c2.actor.rolename)
-
         try:
             self.manager.load_scenario(userData['scenario'], self.agent_instance)
             result = True
@@ -271,26 +263,6 @@ class ScenarioRunner(object):
             traceback.print_exc()
             print(e)
             result = False
-        return result
-
-        try:
-            # Load scenario and run it
-            self.manager.load_scenario(scenario, self.agent_instance)
-            self.manager.run_scenario()
-
-            # Provide outputs if required
-            self._analyze_scenario(config)
-
-            # Remove all actors, stop the recorder and save all criterias (if needed)
-            scenario.remove_all_actors()
-
-            result = True
-        except Exception as e:
-            traceback.print_exc()
-            print(e)
-            result = False
-
-        self._cleanup()
         return result
 
     def _run_openscenario(self, userData):
@@ -396,7 +368,7 @@ def ModelOutput(userData):
     try:
         if userData['time'] == 10:
             userData['scenario_runner'].manager.scenario_start()
-            userData['scenario'].create_actor()
+            userData['scenario'].create_actor(userData)
         else:
             userData['scenario_runner'].manager.ModelOutput(userData)
     except Exception as e:

@@ -1203,26 +1203,26 @@ class ChangeActorLaneOffset(AtomicBehavior):
         if actor_dict[self._actor.id].get_last_waypoint_command() != self._start_time:
             return py_trees.common.Status.SUCCESS
 
-        if self._relative_actor:
-            # Calculate new offset
-            relative_actor_loc = PanoSimDataProvider.get_location(self._relative_actor)
-            relative_center_wp = self._map.get_waypoint(relative_actor_loc)
+        # if self._relative_actor:
+        #     # Calculate new offset
+        #     relative_actor_loc = PanoSimDataProvider.get_location(self._relative_actor)
+        #     relative_center_wp = self._map.get_waypoint(relative_actor_loc)
 
-            # Value
-            relative_center_loc = relative_center_wp.transform.location
-            relative_actor_offset = relative_actor_loc.distance(relative_center_loc)
+        #     # Value
+        #     relative_center_loc = relative_center_wp.transform.location
+        #     relative_actor_offset = relative_actor_loc.distance(relative_center_loc)
 
-            # Sign
-            f_vec = relative_center_wp.transform.get_forward_vector()
-            d_vec = relative_actor_loc - relative_center_loc
-            cross = f_vec.x * d_vec.y - f_vec.y * d_vec.x
+        #     # Sign
+        #     f_vec = relative_center_wp.transform.get_forward_vector()
+        #     d_vec = relative_actor_loc - relative_center_loc
+        #     cross = f_vec.x * d_vec.y - f_vec.y * d_vec.x
 
-            if cross < 0:
-                relative_actor_offset *= -1.0
+        #     if cross < 0:
+        #         relative_actor_offset *= -1.0
 
-            self._current_target_offset = relative_actor_offset + self._offset
-            # Set the new offset
-            actor_dict[self._actor.id].update_offset(self._current_target_offset)
+        #     self._current_target_offset = relative_actor_offset + self._offset
+        #     # Set the new offset
+        #     actor_dict[self._actor.id].update_offset(self._current_target_offset)
 
         if not self._continuous:
             # Calculate new offset
