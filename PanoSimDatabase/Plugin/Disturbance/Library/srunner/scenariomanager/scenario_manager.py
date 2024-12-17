@@ -116,7 +116,7 @@ class ScenarioManager(object):
                 id, _, _, x, y, z, yaw, pitch, roll, speed = bus_trafffic.readBody(index)
                 if id in PanoSimDataProvider._actor_pool.keys():
                     actor = PanoSimDataProvider._actor_pool[id]
-                    if actor.actor_category == 'bicycle':
+                    if actor.actor_category == 'bicycle' or actor.actor_category == 'pedestrian':
                         actor.transform.location.x = x
                         actor.transform.location.y = y
                         actor.transform.location.z = z

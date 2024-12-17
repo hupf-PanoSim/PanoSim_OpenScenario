@@ -20,7 +20,9 @@ from srunner.scenarios.open_scenario import OpenScenario
 
 # from TrafficModelInterface import *
 
-# pip install xmlschema
+from BusAccessor import *
+
+# pip install -v xmlschema==1.0.18
 # pip install -v py_trees==0.8.3
 # pip install -v ephem==4.1.5
 # pip install -v networkx==2.2
@@ -352,6 +354,8 @@ def ModelStart(userData):
         arguments.sync = True
 
     scenario_runner = None
+
+    userData["bus_traffic"] = DoubleBusReader(userData["busId"], "traffic", "time@i,100@[,id@i,type@b,shape@i,x@f,y@f,z@f,yaw@f,pitch@f,roll@f,speed@f")
 
     try:
         userData['scenario_runner'] = ScenarioRunner(arguments)

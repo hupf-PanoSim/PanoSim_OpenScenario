@@ -432,11 +432,13 @@ class OpenScenario(BasicScenario):
                 old_id = actor.id
                 if actor.actor_category == 'bicycle':
                     type = vehicle_type.NonMotorVehicle
+                elif actor.actor_category == 'pedestrian':
+                    type = vehicle_type.Pedestrian
                 if actor.transform.type == 'WorldPosition':
                     x = actor.transform.location.x + offsetX
                     y = actor.transform.location.y + offsetY
                     actor.id = addVehicle(x, y, 0, type)
-                    if actor.id > 100 and type == vehicle_type.NonMotorVehicle:
+                    if actor.id > 100 and (type == vehicle_type.NonMotorVehicle or type == vehicle_type.Pedestrian):
                         moveTo(actor.id, x, y, 90 - actor.transform.rotation.yaw)
                 elif actor.transform.type == 'RelativeRoadPosition':
                     ds = actor.transform.data['ds']

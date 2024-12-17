@@ -428,7 +428,7 @@ class PanoSimActor:
         self.bounding_box = PanoSimBoundingBox()
 
     def get_transform(self):
-        if self.actor_category == 'bicycle':
+        if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.transform
         else:
             self.transform.location.x = getVehicleX(self.id)
@@ -438,7 +438,7 @@ class PanoSimActor:
             return self.transform
 
     def get_location(self):
-        if self.actor_category == 'bicycle':
+        if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.transform.location
         else:
             return PanoSimLocation(getVehicleX(self.id), getVehicleY(self.id), getVehicleZ(self.id))
@@ -455,6 +455,9 @@ class PanoSimActor:
     def listen(self, callback):
         pass
 
+    def set_autopilot(self, autopilot=True, port=8000):
+        pass
+
     def stop(self):
         print('stop:', self.id)
 
@@ -462,7 +465,7 @@ class PanoSimActor:
         print('destroy:', self.id)
 
     def get_velocity(self):
-        if self.actor_category == 'bicycle':
+        if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.speed
         else:
             return getVehicleSpeed(self.id)
