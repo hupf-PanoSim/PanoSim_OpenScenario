@@ -15,6 +15,8 @@ from srunner.scenariomanager.data_provider import PanoSimVector3D
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 
+from TrafficModelInterface import *
+
 
 class VehicleLongitudinalControl(BasicControl):
 
@@ -50,24 +52,27 @@ class VehicleLongitudinalControl(BasicControl):
         the initial actor velocity is maintained independent of physics.
         """
 
-        control = self._actor.get_control()
+        if not self._init_speed:
+            changeSpeed(self._actor.id, self._target_speed, 0)
 
-        velocity = self._actor.get_velocity()
-        current_speed = math.sqrt(velocity.x**2 + velocity.y**2)
-        if current_speed < self._target_speed and self._target_speed >= 0:
-            control.reverse = False
-            control.throttle = 1.0
-        elif current_speed > self._target_speed and self._target_speed < 0:
-            control.reverse = True
-            control.throttle = 1.0
-        else:
-            control.throttle = 0.0
+        # control = self._actor.get_control()
 
-        self._actor.apply_control(control)
+        # velocity = self._actor.get_velocity()
+        # current_speed = math.sqrt(velocity.x**2 + velocity.y**2)
+        # if current_speed < self._target_speed and self._target_speed >= 0:
+        #     control.reverse = False
+        #     control.throttle = 1.0
+        # elif current_speed > self._target_speed and self._target_speed < 0:
+        #     control.reverse = True
+        #     control.throttle = 1.0
+        # else:
+        #     control.throttle = 0.0
 
-        if self._init_speed:
-            if abs(self._target_speed - current_speed) > 3:
-                yaw = self._actor.get_transform().rotation.yaw * (math.pi / 180)
-                vx = math.cos(yaw) * self._target_speed
-                vy = math.sin(yaw) * self._target_speed
-                self._actor.set_target_velocity(PanoSimVector3D(vx, vy, 0))
+        # self._actor.apply_control(control)
+
+        # if self._init_speed:
+        #     if abs(self._target_speed - current_speed) > 3:
+        #         yaw = self._actor.get_transform().rotation.yaw * (math.pi / 180)
+        #         vx = math.cos(yaw) * self._target_speed
+        #         vy = math.sin(yaw) * self._target_speed
+        #         self._actor.set_target_velocity(PanoSimVector3D(vx, vy, 0))

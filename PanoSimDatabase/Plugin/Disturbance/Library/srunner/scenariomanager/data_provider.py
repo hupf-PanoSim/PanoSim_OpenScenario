@@ -52,6 +52,7 @@ class PanoSimCommand:
     def then(self, other_command):
         return self
 
+
 class PanoSimActorAttributeType(IntEnum):
     Bool    = 0
     Int     = 1
@@ -71,6 +72,7 @@ class PanoSimRoadOption(IntEnum):
     CHANGELANELEFT  = 5
     CHANGELANERIGHT = 6
     ROADEND         = 7
+
 
 class PanoSimLaneType(IntEnum):
     NONE          = 0x1
@@ -111,12 +113,14 @@ class PanoSimVehicleLightState(IntEnum):
     Special2     = 0x1 << 10
     All          = 0xFFFFFFFF
 
+
 class PanoSimLightGroup(IntEnum):
     NONE    = 0
     Vehicle = 1
     Street  = 2
     Building= 3
     Other   = 4
+
 
 class PanoSimTrafficLightState(Enum):
     Red     = 0
@@ -126,11 +130,13 @@ class PanoSimTrafficLightState(Enum):
     Unknown = 4
     SIZE    = 5
 
+
 class PanoSimLaneChange(Enum):
     NONE    = 0
     Right   = 1
     Left    = 2
     Both    = 3
+
 
 class PanoSimVehicleDoor(Enum):
     FL  = 0
@@ -139,17 +145,14 @@ class PanoSimVehicleDoor(Enum):
     RR  = 3
     All = 6
 
-class PanoSimColor:
-    r = 0
-    g = 0
-    b = 0
-    a = 255
 
+class PanoSimColor:
     def __init__(self, r=0, g=0, b=0, a=255):
         self.r = r
         self.g = g
         self.b = b
         self.a = a
+
 
 class PanoSimLightGroup(Enum):
     NONE    = 0
@@ -158,19 +161,15 @@ class PanoSimLightGroup(Enum):
     Building= 3
     Other   = 4
 
-class PanoSimGearPhysicsControl:
-    ratio = 1.0
-    down_ratio = 0.5
-    up_ratio = 0.65
 
-    def __init__(self, ratio=0, down_ratio=0, up_ratio=0):
+class PanoSimGearPhysicsControl:
+    def __init__(self, ratio=1.0, down_ratio=0.5, up_ratio=0.65):
         self.ratio = ratio
         self.down_ratio = down_ratio
         self.up_ratio = up_ratio
 
 
 class PanoSimBluePrint(object):
-
     def __init__(self):
         self.id = -1
         self.attributes = {'role_name': ''}
@@ -197,21 +196,6 @@ class PanoSimBluePrintLibrary:
 
 
 class PanoSimWeather:
-    cloudiness = -1.0
-    precipitation = -1.0
-    precipitation_deposits = -1.0
-    wind_intensity = -1.0
-    sun_azimuth_angle = -1.0
-    sun_altitude_angle = -1.0
-    fog_density = -1.0
-    fog_distance = -1.0
-    fog_falloff = -1.0
-    wetness = -1.0
-    scattering_intensity = 1.0
-    mie_scattering_scale = 0.03
-    rayleigh_scattering_scale = 0.0331
-    dust_storm = 0.0
-
     def __init__(self, cloudiness = -1.0, precipitation = -1.0, precipitation_deposits = -1.0,
                  wind_intensity = -1.0, sun_azimuth_angle = -1.0, sun_altitude_angle = -1.0,
                  fog_density = -1.0, fog_distance = -1.0, fog_falloff = -1.0, wetness = -1.0,
@@ -231,28 +215,24 @@ class PanoSimWeather:
         self.rayleigh_scattering_scale = rayleigh_scattering_scale
         self.dust_storm = dust_storm
 
+
 class PanoSimGeoLocation:
     longitude = 0
     latitude = 0
 
 
 class PanoSimVector2D:
-    x = 0
-    y = 0
-
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
 
-class PanoSimVector3D:
-    x = 0
-    y = 0
-    z = 0
 
+class PanoSimVector3D:
     def __init__(self, x=0, y=0, z=0):
         self.x = x
         self.y = y
         self.z = z
+
 
 class PanoSimLocation():
     def __init__(self, x=0, y=0, z=0):
@@ -276,11 +256,7 @@ class PanoSimLocation():
 
 
 class PanoSimRotation():
-    pitch = 0
-    roll = 0
-    yaw = 0
-
-    def __init__(self, pitch=0, roll=0, yaw=0):
+    def __init__(self, yaw=0, pitch=0, roll=0):
         self.pitch = pitch
         self.roll = roll
         self.yaw = yaw
@@ -288,13 +264,11 @@ class PanoSimRotation():
     def get_forward_vector(self):
         return PanoSimVector3D()
 
-class PanoSimTransform:
-    location = PanoSimLocation(0, 0, 0)
-    rotation = PanoSimRotation(0, 0, 0)
 
+class PanoSimTransform:
     def __init__(self, location=PanoSimLocation(0, 0, 0), rotation=PanoSimRotation(0, 0, 0)):
-        self.location = location
-        self.rotation = rotation
+        self.location = PanoSimLocation(location.x, location.y, location.z)
+        self.rotation = PanoSimRotation(rotation.yaw, rotation.pitch, rotation.roll)
         self.type = ''
         self.data = {}
 
@@ -315,14 +289,11 @@ class PanoSimTransform:
 
 
 class PanoSimBoundingBox:
-    location = PanoSimLocation(0, 0, 0)
-    extent = PanoSimVector3D()
-    rotation = PanoSimRotation(0, 0, 0)
-
     def __init__(self, location=PanoSimLocation(0, 0, 0), extent=PanoSimVector3D(), rotation=PanoSimRotation(0, 0, 0)):
-        self.location = location
-        self.extent = extent
-        self.rotation = rotation
+        self.location = PanoSimLocation(location.x, location.y, location.z)
+        self.extent = PanoSimVector3D(extent.x, extent.y, extent.z)
+        self.rotation = PanoSimRotation(rotation.yaw, rotation.pitch, rotation.roll)
+
 
 class PanoSimWaypoint():
     transform = PanoSimTransform(PanoSimLocation(), PanoSimRotation())
@@ -337,16 +308,16 @@ class PanoSimWaypoint():
 
 
 class PanoSimWheelPhysicsControl:
-    tire_friction = 2.0
-    damping_rate = 0.25
-    max_steer_angle = 70.0
-    radius = 30.0
-    max_brake_torque = 1500.0
-    max_handbrake_torque = 3000.0
-    lat_stiff_max_load = 2.0
-    lat_stiff_value = 17.0
-    long_stiff_value = 1000.0
-    position = PanoSimVector3D()
+    # tire_friction = 2.0
+    # damping_rate = 0.25
+    # max_steer_angle = 70.0
+    # radius = 30.0
+    # max_brake_torque = 1500.0
+    # max_handbrake_torque = 3000.0
+    # lat_stiff_max_load = 2.0
+    # lat_stiff_value = 17.0
+    # long_stiff_value = 1000.0
+    # position = PanoSimVector3D()
 
     def __init__(self, tire_friction, damping_rate, max_steer_angle, radius, max_brake_torque, max_handbrake_torque, lat_stiff_max_load, lat_stiff_value, long_stiff_value, position):
         self.tire_friction = tire_friction
@@ -358,7 +329,8 @@ class PanoSimWheelPhysicsControl:
         self.lat_stiff_max_load = lat_stiff_max_load
         self.lat_stiff_value = lat_stiff_value
         self.long_stiff_value = long_stiff_value
-        self.position = position
+        self.position = PanoSimVector3D(position.x, position.y, position.z)
+
 
 class PanoSimVehiclePhysicsControl:
     torque_curve = [PanoSimVector2D(0.0, 500.0), PanoSimVector2D(5000.0, 500.0)]
@@ -379,30 +351,35 @@ class PanoSimVehiclePhysicsControl:
     wheels = []
     use_sweep_wheel_collision = False
 
+
 class PanoSimControl:
-    steer = 0
-    throttle = 0
-    brake = 0
+    def __init__(self):
+        self.steer = 0
+        self.throttle = 0
+        self.brake = 0
+
 
 class PanoSimVehicleControl(PanoSimControl):
-    hand_brake = False
-    reverse = False
-    manual_gear_shift = False
-    gear = 0
+    def __init__(self):
+        self.hand_brake = False
+        self.reverse = False
+        self.manual_gear_shift = False
+        self.gear = 0
+
 
 class PanoSimWorldSettings:
-    synchronous_mode = False
-    no_rendering_mode = False
-    fixed_delta_seconds = 0
-    substepping = True
-    max_substep_delta_time = 0.01
-    max_substeps = 10
-    max_culling_distance = 0
-    deterministic_ragdolls = False
+    def __init__(self):
+        self.synchronous_mode = False
+        self.no_rendering_mode = False
+        self.fixed_delta_seconds = 0
+        self.substepping = True
+        self.max_substep_delta_time = 0.01
+        self.max_substeps = 10
+        self.max_culling_distance = 0
+        self.deterministic_ragdolls = False
 
 
 class PanoSimActorList:
-
     def __init__(self, actor_list):
         self.actor_list = actor_list
 
@@ -434,37 +411,37 @@ class PanoSimMap:
     def get_topology(self):
         return []
 
+
 class PanoSimActor:
     def __init__(self) -> None:
         self.attributes = {'role_name': ''}
 
         self.id = -1
         self.type_id = None
-        self.location = PanoSimLocation()
-        self.rotation = PanoSimRotation()
-        self.transform = PanoSimTransform(self.location, self.rotation)
-
-        # vehicle.lincoln.mkz_2017
-        self.model = None
-
+        self.transform = PanoSimTransform(PanoSimLocation(), PanoSimRotation())
         self.world = PanoSimWorld()
         self.ctrl = PanoSimControl()
-
-        # car
+        self.speed = 0
+        self.model = None
         self.actor_category = None
         self.is_alive = True
-        self.speed = 0
         self.bounding_box = PanoSimBoundingBox()
 
     def get_transform(self):
-        self.transform.location.x = getVehicleX(self.id)
-        self.transform.location.y = getVehicleY(self.id)
-        self.transform.location.z = getVehicleZ(self.id)
-        self.transform.rotation.yaw = getVehicleYaw(self.id)
-        return self.transform
+        if self.actor_category == 'bicycle':
+            return self.transform
+        else:
+            self.transform.location.x = getVehicleX(self.id)
+            self.transform.location.y = getVehicleY(self.id)
+            self.transform.location.z = getVehicleZ(self.id)
+            self.transform.rotation.yaw = getVehicleYaw(self.id)
+            return self.transform
 
     def get_location(self):
-        return PanoSimLocation(getVehicleX(self.id), getVehicleY(self.id), getVehicleZ(self.id))
+        if self.actor_category == 'bicycle':
+            return self.transform.location
+        else:
+            return PanoSimLocation(getVehicleX(self.id), getVehicleY(self.id), getVehicleZ(self.id))
 
     def get_world(self):
         return self.world
@@ -480,11 +457,15 @@ class PanoSimActor:
 
     def stop(self):
         print('stop:', self.id)
-        pass
 
     def destroy(self):
         print('destroy:', self.id)
-        pass
+
+    def get_velocity(self):
+        if self.actor_category == 'bicycle':
+            return self.speed
+        else:
+            return getVehicleSpeed(self.id)
 
 
 class PanoSimWalker(PanoSimActor):
@@ -608,6 +589,7 @@ def get_speed(vehicle):
     speed = 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
     return speed
 
+
 class PanoSimDataProvider(object):
 
     _actor_velocity_map = {}
@@ -651,7 +633,7 @@ class PanoSimDataProvider(object):
             if actor in PanoSimDataProvider._actor_location_map:
                 raise KeyError("Vehicle '{}' already registered. Cannot register twice!".format(actor.id))
             elif transform:
-                PanoSimDataProvider._actor_location_map[actor] = PanoSimLocation(transform.location.x, transform.location.y, transform.location.z)
+                PanoSimDataProvider._actor_location_map[actor] = transform.location
             else:
                 PanoSimDataProvider._actor_location_map[actor] = None
 
@@ -705,8 +687,8 @@ class PanoSimDataProvider(object):
             for actor in PanoSimDataProvider._actor_velocity_map:
                 if actor is not None and actor.is_alive:
                     if actor.id > 100:
-                        changeSpeed(actor.id, actor.speed, 0)
                         speed = actor.speed
+                        changeSpeed(actor.id, actor.speed, 0)
                     else:
                         speed = getVehicleSpeed(actor.id)
                     PanoSimDataProvider._actor_velocity_map[actor] = speed
@@ -732,7 +714,7 @@ class PanoSimDataProvider(object):
     def get_velocity(actor):
         for key in PanoSimDataProvider._actor_velocity_map:
             if key.id == actor.id:
-                return getVehicleSpeed(actor.id)
+                return actor.speed
                 # return PanoSimDataProvider._actor_velocity_map[key]
         print('{}.get_velocity: {} not found!' .format(__name__, actor))
         return 0.0
@@ -1145,9 +1127,10 @@ class PanoSimDataProvider(object):
         batch = []
         actors = []
 
+        id_offset = 0
         for actor in actor_list:
             new = PanoSimActor()
-            new.id = -1
+            new.id = -1 - id_offset
             new.model = actor.model
             new.attributes['role_name'] = actor.rolename
             new.actor_category = actor.category
@@ -1156,6 +1139,7 @@ class PanoSimDataProvider(object):
             PanoSimDataProvider._actor_pool[new.id] = new
             PanoSimDataProvider.register_actor(new, new.transform)
             actors.append(new)
+            id_offset += 1
 
         return actors
 

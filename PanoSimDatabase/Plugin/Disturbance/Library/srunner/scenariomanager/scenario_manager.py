@@ -93,7 +93,7 @@ class ScenarioManager(object):
         self.timestamp.elapsed_seconds = (userData['time'] - self.start_time) / 1000
         self.timestamp.frame += 1
         if self.timestamp:
-            self._tick_scenario(self.timestamp)
+            self._tick_scenario(self.timestamp, userData)
 
     def ModelTerminate(self):
         self.cleanup()
@@ -104,11 +104,28 @@ class ScenarioManager(object):
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
             print("ScenarioManager: Terminated due to failure")
 
-    def _tick_scenario(self, timestamp):
+    def _tick_scenario(self, timestamp, userData):
         if self._timestamp_last_run < timestamp.elapsed_seconds and self._running:
             self._timestamp_last_run = timestamp.elapsed_seconds
 
             GameTime.on_carla_tick(timestamp)
+
+            bus_trafffic = userData["bus_traffic"].getReader(userData["time"])
+            _, width = bus_trafffic.readHeader()
+            for index in range(width):
+                id, _, _, x, y, z, yaw, pitch, roll, speed = bus_trafffic.readBody(index)
+                if id in PanoSimDataProvider._actor_pool.keys():
+                    actor = PanoSimDataProvider._actor_pool[id]
+                    if actor.actor_category == 'bicycle':
+                        actor.transform.location.x = x
+                        actor.transform.location.y = y
+                        actor.transform.location.z = z
+                        actor.transform.rotation.yaw = yaw
+                        actor.transform.rotation.pitch = pitch
+                        actor.transform.rotation.roll = roll
+                        actor.speed = speed
+                    break
+
             PanoSimDataProvider.on_carla_tick()
 
             if self._agent is not None:

@@ -426,12 +426,18 @@ class OpenScenario(BasicScenario):
             # from town04 net.xml: netOffset="503.02,423.76"
             offsetX = 503.02
             offsetY = 423.76
+        type = vehicle_type.Car
         for actor in self.other_actors:
             if actor.id < 0:
+                old_id = actor.id
+                if actor.actor_category == 'bicycle':
+                    type = vehicle_type.NonMotorVehicle
                 if actor.transform.type == 'WorldPosition':
                     x = actor.transform.location.x + offsetX
-                    y = actor.transform.location.y * -1 + offsetY
-                    actor.id = addVehicle(x, y, 0, vehicle_type.Car)
+                    y = actor.transform.location.y + offsetY
+                    actor.id = addVehicle(x, y, 0, type)
+                    if actor.id > 100 and type == vehicle_type.NonMotorVehicle:
+                        moveTo(actor.id, x, y, 90 - actor.transform.rotation.yaw)
                 elif actor.transform.type == 'RelativeRoadPosition':
                     ds = actor.transform.data['ds']
                     dt = actor.transform.data['dt']
@@ -440,8 +446,17 @@ class OpenScenario(BasicScenario):
                     roadId = Relative['roadId']
                     s = Relative['s']
                     t = Relative['t']
-                    actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, vehicle_type.Car)
+                    actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, type)
                 elif actor.transform.type == 'RoadPosition':
                     print('create_actor:', actor.id, actor.transform.type, actor.transform.data)
                 elif actor.transform.type == 'LanePostion':
                     print('create_actor:', actor.id, actor.transform.type, actor.transform.data)
+                if actor.id > 100:
+                    if old_id in PanoSimDataProvider._actor_pool:
+                        PanoSimDataProvider._actor_pool[actor.id] = PanoSimDataProvider._actor_pool.pop(old_id)
+                    else:
+                        PanoSimDataProvider._actor_pool[actor.id] = actor
+                    if actor in PanoSimDataProvider._actor_location_map:
+                        PanoSimDataProvider._actor_location_map[actor] = actor.transform.location
+                    if actor in PanoSimDataProvider._actor_transform_map:
+                        PanoSimDataProvider._actor_location_map[actor] = actor.transform
