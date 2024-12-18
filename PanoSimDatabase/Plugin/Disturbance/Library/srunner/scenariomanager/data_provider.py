@@ -601,6 +601,7 @@ class PanoSimDataProvider(object):
     _traffic_light_map = {}
     _actor_pool = {}
     _global_osc_parameters = {}
+    _net_offset = (0, 0)
     _client = None
     _world = None
     _map = None

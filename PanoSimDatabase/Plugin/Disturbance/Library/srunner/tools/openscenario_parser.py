@@ -771,6 +771,7 @@ class OpenScenarioParser(object):
                 transform.type = 'RelativeRoadPosition'
                 transform.data['ds'] = ds
                 transform.data['dt'] = dt
+                transform.data['entityRef'] = obj
                 transform.data['Relative'] = actor_transform
 
                 # carla_map = PanoSimDataProvider.get_map()

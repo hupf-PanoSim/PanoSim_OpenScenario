@@ -207,10 +207,7 @@ class InTriggerDistanceToOSCPosition(AtomicCondition):
         if osc_transform is not None:
             osc_location = osc_transform.location
 
-            # add by hupf, for position
-            # from town01 net.xml: netOffset="0.06,328.61"
-            offsetX = 0.06
-            offsetY = 328.61
+            offsetX, offsetY = PanoSimDataProvider._net_offset
             osc_location.x += offsetX
             osc_location.y += offsetY
 

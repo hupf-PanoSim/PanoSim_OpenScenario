@@ -115,6 +115,13 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
             if not os.path.exists(self.town):
                 raise AttributeError("The provided RoadNetwork '{}' does not exist".format(self.town))
 
+        if self.town == 'Town01':
+            # from town01 net.xml: netOffset="0.06,328.61"
+            PanoSimDataProvider._net_offset = (0.06, 328.61)
+        elif self.town == 'Town04':
+            # from town04 net.xml: netOffset="503.02,423.76"
+            PanoSimDataProvider._net_offset = (503.02, 423.76)
+
         # workaround for relative positions during init
         world = self.client.get_world()
         wmap = None

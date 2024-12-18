@@ -416,16 +416,7 @@ class OpenScenario(BasicScenario):
                 self.other_actors.append(new_actor)
 
     def create_actor(self, userData):
-        offsetX, offsetY = 0, 0
-        town = userData['config'].town
-        if town == 'Town01':
-            # from town01 net.xml: netOffset="0.06,328.61"
-            offsetX = 0.06
-            offsetY = 328.61
-        elif town == 'Town04':
-            # from town04 net.xml: netOffset="503.02,423.76"
-            offsetX = 503.02
-            offsetY = 423.76
+        offsetX, offsetY = PanoSimDataProvider._net_offset
         type = vehicle_type.Car
         for actor in self.other_actors:
             if actor.id < 0:
@@ -442,13 +433,20 @@ class OpenScenario(BasicScenario):
                         moveTo(actor.id, x, y, 90 - actor.transform.rotation.yaw)
                 elif actor.transform.type == 'RelativeRoadPosition':
                     ds = actor.transform.data['ds']
-                    dt = actor.transform.data['dt']
+                    # dt = actor.transform.data['dt']
+                    ref = actor.transform.data['entityRef']
                     Relative = actor.transform.data['Relative']
                     Relative = Relative.data
-                    roadId = Relative['roadId']
-                    s = Relative['s']
-                    t = Relative['t']
-                    actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, type)
+                    # roadId = Relative['roadId']
+                    # s = Relative['s']
+                    # t = Relative['t']
+                    if ref == 'hero':
+                        actor.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, type)
+                    else:
+                        for k, v in PanoSimDataProvider._actor_pool.items():
+                            if v.attributes['role_name'] == ref and k > 100:
+                                actor.id = addVehicleRelated(k, float(ds), 0, 0, lane_type.current, type)
+                                break
                 elif actor.transform.type == 'RoadPosition':
                     print('create_actor:', actor.id, actor.transform.type, actor.transform.data)
                 elif actor.transform.type == 'LanePostion':
