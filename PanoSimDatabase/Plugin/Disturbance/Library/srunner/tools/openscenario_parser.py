@@ -644,6 +644,9 @@ class OpenScenarioParser(object):
             if not OpenScenarioParser.use_carla_coordinate_system:
                 y = y * (-1.0)
                 yaw = yaw * (-1.0)
+            offsetX, offsetY = PanoSimDataProvider._net_offset
+            x += offsetX
+            y += offsetY
             transform = PanoSimTransform(PanoSimLocation(x=x, y=y, z=z), PanoSimRotation(yaw=yaw, pitch=pitch, roll=roll))
             transform.type = 'WorldPosition'
             return transform

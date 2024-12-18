@@ -207,10 +207,6 @@ class InTriggerDistanceToOSCPosition(AtomicCondition):
         if osc_transform is not None:
             osc_location = osc_transform.location
 
-            offsetX, offsetY = PanoSimDataProvider._net_offset
-            osc_location.x += offsetX
-            osc_location.y += offsetY
-
             actor_location = PanoSimDataProvider.get_location(self._actor)
 
             if self._along_route:

@@ -105,6 +105,7 @@ class ActorControl(object):
         """
         self.control_instance.update_target_speed(target_speed)
         self.control_instance._actor.speed = target_speed
+        changeSpeed(self.control_instance._actor.id, target_speed, 0)
         if start_time:
             self._last_longitudinal_command = start_time
 

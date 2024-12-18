@@ -786,45 +786,45 @@ class ChangeActorWaypoints(AtomicBehavior):
         # At the moment everything besides "shortest" will use the CARLA GlobalPlanner
         grp = PanoSimDataProvider.get_global_route_planner()
         route = []
-        for i, _ in enumerate(carla_route_elements):
-            if carla_route_elements[i][1] == "shortest":
-                route.append(carla_route_elements[i][0])
-            else:
-                if i == 0:
-                    mmap = PanoSimDataProvider.get_map()
-                    ego_location = PanoSimDataProvider.get_location(self._actor)
-                    ego_waypoint = mmap.get_waypoint(ego_location)
-                    try:
-                        ego_next_wp = ego_waypoint.next(1)[0]
-                    except IndexError:
-                        ego_next_wp = ego_waypoint
-                    waypoint = ego_next_wp.transform.location
-                else:
-                    waypoint = carla_route_elements[i - 1][0].location
-                waypoint_next = carla_route_elements[i][0].location
-                try:
-                    interpolated_trace = grp.trace_route(waypoint, waypoint_next)
-                except networkx.NetworkXNoPath:
-                    print("WARNING: No route from {} to {} - Using direct path instead".format(waypoint, waypoint_next))
-                    route.append(carla_route_elements[i][0])
-                    continue
-                for wp_tuple in interpolated_trace:
-                    # The router sometimes produces points that go backward, or are almost identical
-                    # We have to filter these, to avoid problems
-                    if route and wp_tuple[0].transform.location.distance(route[-1].location) > 1.0:
-                        new_heading_vec = wp_tuple[0].transform.location - route[-1].location
-                        new_heading = np.arctan2(new_heading_vec.y, new_heading_vec.x)
-                        if len(route) > 1:
-                            last_heading_vec = route[-1].location - route[-2].location
-                        else:
-                            last_heading_vec = route[-1].location - ego_next_wp.transform.location
-                        last_heading = np.arctan2(last_heading_vec.y, last_heading_vec.x)
+        # for i, _ in enumerate(carla_route_elements):
+        #     if carla_route_elements[i][1] == "shortest":
+        #         route.append(carla_route_elements[i][0])
+        #     else:
+        #         if i == 0:
+        #             mmap = PanoSimDataProvider.get_map()
+        #             ego_location = PanoSimDataProvider.get_location(self._actor)
+        #             ego_waypoint = mmap.get_waypoint(ego_location)
+        #             try:
+        #                 ego_next_wp = ego_waypoint.next(1)[0]
+        #             except IndexError:
+        #                 ego_next_wp = ego_waypoint
+        #             waypoint = ego_next_wp.transform.location
+        #         else:
+        #             waypoint = carla_route_elements[i - 1][0].location
+        #         waypoint_next = carla_route_elements[i][0].location
+        #         try:
+        #             interpolated_trace = grp.trace_route(waypoint, waypoint_next)
+        #         except networkx.NetworkXNoPath:
+        #             print("WARNING: No route from {} to {} - Using direct path instead".format(waypoint, waypoint_next))
+        #             route.append(carla_route_elements[i][0])
+        #             continue
+        #         for wp_tuple in interpolated_trace:
+        #             # The router sometimes produces points that go backward, or are almost identical
+        #             # We have to filter these, to avoid problems
+        #             if route and wp_tuple[0].transform.location.distance(route[-1].location) > 1.0:
+        #                 new_heading_vec = wp_tuple[0].transform.location - route[-1].location
+        #                 new_heading = np.arctan2(new_heading_vec.y, new_heading_vec.x)
+        #                 if len(route) > 1:
+        #                     last_heading_vec = route[-1].location - route[-2].location
+        #                 else:
+        #                     last_heading_vec = route[-1].location - ego_next_wp.transform.location
+        #                 last_heading = np.arctan2(last_heading_vec.y, last_heading_vec.x)
 
-                        heading_delta = math.fabs(new_heading - last_heading)
-                        if math.fabs(heading_delta) < 0.5 or math.fabs(heading_delta) > 5.5:
-                            route.append(wp_tuple[0].transform)
-                    elif not route:
-                        route.append(wp_tuple[0].transform)
+        #                 heading_delta = math.fabs(new_heading - last_heading)
+        #                 if math.fabs(heading_delta) < 0.5 or math.fabs(heading_delta) > 5.5:
+        #                     route.append(wp_tuple[0].transform)
+        #             elif not route:
+        #                 route.append(wp_tuple[0].transform)
 
         actor_dict[self._actor.id].update_waypoints(route, start_time=self._start_time)
 

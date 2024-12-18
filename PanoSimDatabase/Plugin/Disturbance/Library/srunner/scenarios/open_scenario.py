@@ -416,7 +416,6 @@ class OpenScenario(BasicScenario):
                 self.other_actors.append(new_actor)
 
     def create_actor(self, userData):
-        offsetX, offsetY = PanoSimDataProvider._net_offset
         type = vehicle_type.Car
         for actor in self.other_actors:
             if actor.id < 0:
@@ -426,8 +425,8 @@ class OpenScenario(BasicScenario):
                 elif actor.actor_category == 'pedestrian':
                     type = vehicle_type.Pedestrian
                 if actor.transform.type == 'WorldPosition':
-                    x = actor.transform.location.x + offsetX
-                    y = actor.transform.location.y + offsetY
+                    x = actor.transform.location.x
+                    y = actor.transform.location.y
                     actor.id = addVehicle(x, y, 0, type)
                     if actor.id > 100 and (type == vehicle_type.NonMotorVehicle or type == vehicle_type.Pedestrian):
                         moveTo(actor.id, x, y, 90 - actor.transform.rotation.yaw)

@@ -441,7 +441,10 @@ class PanoSimActor:
         if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.transform.location
         else:
-            return PanoSimLocation(getVehicleX(self.id), getVehicleY(self.id), getVehicleZ(self.id))
+            self.transform.location.x = getVehicleX(self.id)
+            self.transform.location.y = getVehicleY(self.id)
+            self.transform.location.z = getVehicleZ(self.id)
+            return self.transform.location
 
     def get_world(self):
         return self.world
@@ -718,7 +721,10 @@ class PanoSimDataProvider(object):
     def get_velocity(actor):
         for key in PanoSimDataProvider._actor_velocity_map:
             if key.id == actor.id:
-                return actor.speed
+                if actor.actor_category == 'bicycle' or actor.actor_category == 'pedestrian':
+                    return actor.speed
+                else:
+                    return getVehicleSpeed(actor.id)
                 # return PanoSimDataProvider._actor_velocity_map[key]
         print('{}.get_velocity: {} not found!' .format(__name__, actor))
         return 0.0
