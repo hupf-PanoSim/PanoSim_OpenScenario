@@ -678,7 +678,8 @@ class InTriggerDistanceToVehicle(AtomicCondition):
         if location is None or reference_location is None:
             return new_status
 
-        distance = get_distance_between_actors(self._actor, self._reference_actor, self._distance_type, self._freespace, self._global_rp)
+        # distance = get_distance_between_actors(self._actor, self._reference_actor, self._distance_type, self._freespace, self._global_rp)
+        distance = self._actor.get_location().distance(self._reference_actor.get_location())
 
         if self._comparison_operator(distance, self._distance):
             new_status = py_trees.common.Status.SUCCESS
