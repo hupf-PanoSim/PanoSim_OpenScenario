@@ -1,0 +1,33 @@
+<World readonly="false">
+  <Field link="" />
+  <Net link="PedestrianCrossingFront\PedestrianCrossingFront.net.xml" Seed="0" Style="City" Elevation="false">
+    <Lanes Texture="Asphalt" FrictionCoefficient="0.8" Wetness="0" SnowPack="0" Cracks="0.1" Dirtiness="0.3" Opacity="1" />
+    <LaneLines />
+    <Junctions />
+  </Net>
+  <Facilities>
+    <TrafficSigns />
+    <Obstacles>
+      <Obstacle type="16" X="90" Y="20" Z="0" Yaw="0" Pitch="0" Roll="0" />
+      <Obstacle X="95" Y="30" Yaw="0" type="16" Z="0" Pitch="0" Roll="0" />
+      <Obstacle X="91" Y="40" Yaw="90" type="16" Z="0" Pitch="0" Roll="0" />
+      <Obstacle X="93" Y="50" Yaw="90" type="16" Z="0" Pitch="0" Roll="0" />
+      <Obstacle X="91" Y="60" Yaw="90" type="16" Z="0" Pitch="0" Roll="0" />
+    </Obstacles>
+    <TrafficLights />
+    <Crosswalks />
+    <Marks />
+    <ParkingSpots />
+    <RSUs />
+    <Isolators />
+    <Ceilings />
+    <Interchanges />
+  </Facilities>
+  <Environment Type="Rainy">
+    <Air Temperature="30" Pressure="0.9" Humidity="80" />
+    <Precipitation Type="Rain" ParticleSize="0.5" ParticleCapacity="10000" FallingAlpha="5" FallingBeta="5" FallingSpeed="0.8" />
+    <Fog Visibility="490" />
+  </Environment>
+  <Lighting Alpha="0" Beta="0" Intensity="5000" Ambient="160" StreetLight="off" VehicleLight="off" SkyBox="Dark" />
+  <Traffic Seed="0" Density="5" Pedestrian="0" CarWeight="71" VanWeight="21" BusWeight="7" OtherWeight="0.999999999999999" CautiousDriverWeight="15" CommonDriverWeight="77" RadicalDriverWeight="8" />
+</World>

@@ -523,7 +523,7 @@ class PanoSimWorld:
         #       weather.fog_distance, weather.fog_falloff, weather.wetness, weather.scattering_intensity,
         #       weather.mie_scattering_scale, weather.rayleigh_scattering_scale, weather.dust_storm)
         # todo: data mapping from carla to PanoSim
-        if weather.cloudiness > 15:
+        if weather.cloudiness > 90:
             temperature = 14.66
             pressure = 1
             humidity = 60

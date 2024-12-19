@@ -209,12 +209,13 @@ class InTriggerDistanceToOSCPosition(AtomicCondition):
 
             actor_location = PanoSimDataProvider.get_location(self._actor)
 
-            if self._along_route:
-                # Global planner needs a location at a driving lane
-                actor_location = self._map.get_waypoint(actor_location).transform.location
-                osc_location = self._map.get_waypoint(osc_location).transform.location
+            # if self._along_route:
+            #     # Global planner needs a location at a driving lane
+            #     actor_location = self._map.get_waypoint(actor_location).transform.location
+            #     osc_location = self._map.get_waypoint(osc_location).transform.location
 
-            distance = calculate_distance(actor_location, osc_location, self._grp)
+            # distance = calculate_distance(actor_location, osc_location, self._grp)
+            distance = actor_location.distance(osc_location)
 
             if self._comparison_operator(distance, self._distance):
                 new_status = py_trees.common.Status.SUCCESS
