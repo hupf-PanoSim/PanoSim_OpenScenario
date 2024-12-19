@@ -357,6 +357,12 @@ def ModelStart(userData):
 
     userData["bus_traffic"] = DoubleBusReader(userData["busId"], "traffic", "time@i,100@[,id@i,type@b,shape@i,x@f,y@f,z@f,yaw@f,pitch@f,roll@f,speed@f")
 
+    Format = 'time@i,temperature@f,pressure@f,humidity@f,precipitation_type@b,particle_size@f,particle_capacity@f,\
+        falling_alpha@f,falling_beta@f,falling_speed@f,fog_visibility@f,lighting_alpha@f,lighting_beta@f,\
+        lighting_intensity@f,lighting_ambient@f,street_light@b,vehicle_light@b,skybox@b,friction@f,wetness@f,snow@f'
+    userData['weather'] = BusAccessor(userData['busId'], 'weather', Format)
+    PanoSimDataProvider._bus_weather = userData['weather']
+
     try:
         userData['scenario_runner'] = ScenarioRunner(arguments)
         userData['scenario_runner']._run_openscenario(userData)
@@ -369,6 +375,7 @@ def ModelStart(userData):
 
 
 def ModelOutput(userData):
+    PanoSimDataProvider._timestamp = userData['time']
     try:
         if userData['time'] == 10:
             userData['scenario_runner'].manager.scenario_start()

@@ -1,0 +1,32 @@
+<Experiment readonly="false" description="" groupId="0" mode="normal">
+  <World link="CarlaTown01" traffic="false" hostId="0" nodeId="0" />
+  <Vehicle link="C_Class_Sedan" hostId="0" nodeId="0" type="PanoSim-Raw" />
+  <Task>
+    <Trajectory Z="0">
+      <KeyPoints>
+        <KeyPoint X="150.06" Y="195.18" type="Road" Lane="-4.0.00_2" />
+      </KeyPoints>
+      <WayPoints>
+        <WayPoint X="150.06" Y="195.18" />
+        <WayPoint X="250.06" Y="195.13" />
+      </WayPoints>
+      <Edges>
+        <Edge id="-4.0.00" Direction="S" />
+      </Edges>
+    </Trajectory>
+    <SpeedTable>
+      <SpeedTime Time="0" Speed="0" />
+    </SpeedTable>
+    <ParkingSpot enable="False" Number="0" />
+  </Task>
+  <TrafficObjects />
+  <Disturbance>
+    <Plugin link="OpenScenario_Player.py" hostId="0" nodeId="0" scenario="ChangingWeather" Parameter="True" />
+  </Disturbance>
+  <Agent>
+    <Plugin internal="false" hostId="0" nodeId="0" link="KeyboardControl.py" Throttle="0.3" Brake="5" Steer="180" Parameter="True" />
+  </Agent>
+  <Evaluator />
+  <Simulation Solver="ode1" Step="0.001" StopTime="0" Speed="1" UtcTime="0" MultiAgentMode="None" ServerIP="127.0.0.1" ServerPort="1018" SoftRT="false" />
+  <GlobalVariables Variable0="0" Variable1="0" Variable2="0" Variable3="0" Variable4="0" Variable5="0" Variable6="0" Variable7="0" Variable8="0" Variable9="0" />
+</Experiment>

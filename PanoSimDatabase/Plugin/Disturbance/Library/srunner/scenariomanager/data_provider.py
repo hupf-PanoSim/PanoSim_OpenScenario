@@ -518,6 +518,36 @@ class PanoSimWorld:
 
     def set_weather(self, weather):
         self.weather = weather
+        # print('set_weather:', weather.cloudiness, weather.precipitation, weather.precipitation_deposits, 
+        #       weather.wind_intensity, weather.sun_azimuth_angle, weather.sun_altitude_angle, weather.fog_density, 
+        #       weather.fog_distance, weather.fog_falloff, weather.wetness, weather.scattering_intensity,
+        #       weather.mie_scattering_scale, weather.rayleigh_scattering_scale, weather.dust_storm)
+        # todo: data mapping from carla to PanoSim
+        if weather.cloudiness > 15:
+            temperature = 14.66
+            pressure = 1
+            humidity = 60
+            precipitation_type = 0
+            particle_size = 0.5
+            particle_capacity = 0
+            falling_alpha = 0
+            falling_beta = 0
+            falling_speed = 0.8
+            fog_visibility = 499
+            lighting_alpha = 0
+            lighting_beta = 0
+            lighting_intensity = 100
+            lighting_ambient = 1
+            street_light = 1
+            vehicle_light = 1
+            skybox = 1
+            friction = 0.8
+            wetness = 0
+            snow = 0
+            PanoSimDataProvider._bus_weather.writeHeader(*(
+                PanoSimDataProvider._timestamp, temperature, pressure, humidity, precipitation_type, 
+                particle_size, particle_capacity, falling_alpha, falling_beta, falling_speed, fog_visibility, lighting_alpha, 
+                lighting_beta, lighting_intensity, lighting_ambient, street_light, vehicle_light, skybox, friction, wetness, snow))
 
 
 class PanoSimClient:
@@ -621,6 +651,8 @@ class PanoSimDataProvider(object):
     _grp = None
     _runtime_init_flag = False
     _lock = threading.Lock()
+    _bus_weather = None
+    _timestamp = 0
 
     @staticmethod
     def set_local_planner(plan):
