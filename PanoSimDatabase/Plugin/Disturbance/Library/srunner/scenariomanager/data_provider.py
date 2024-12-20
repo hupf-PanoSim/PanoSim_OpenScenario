@@ -455,9 +455,6 @@ class PanoSimActor:
     def get_control(self):
         return self.ctrl
 
-    def destroy(self):
-        del self
-
     def listen(self, callback):
         pass
 
@@ -468,7 +465,7 @@ class PanoSimActor:
         print('stop:', self.id)
 
     def destroy(self):
-        print('destroy:', self.id)
+        del self
 
     def get_velocity(self):
         if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
@@ -1306,12 +1303,28 @@ class PanoSimDataProvider(object):
 
     @staticmethod
     def remove_actor_by_id(actor_id):
+        for actor, _ in PanoSimDataProvider._actor_transform_map.items():
+            if actor.id == actor_id:
+                del PanoSimDataProvider._actor_transform_map[actor]
+                break
+
+        for actor, _ in PanoSimDataProvider._actor_velocity_map.items():
+            if actor.id == actor_id:
+                del PanoSimDataProvider._actor_velocity_map[actor]
+                break
+
+        for actor, _ in PanoSimDataProvider._actor_location_map.items():
+            if actor.id == actor_id:
+                del PanoSimDataProvider._actor_location_map[actor]
+                break
+
         if actor_id in PanoSimDataProvider._actor_pool:
             PanoSimDataProvider._actor_pool[actor_id].destroy()
             PanoSimDataProvider._actor_pool[actor_id] = None
             PanoSimDataProvider._actor_pool.pop(actor_id)
         else:
             print("Trying to remove a non-existing actor id {}".format(actor_id))
+        deleteVehicle(actor_id)
 
     @staticmethod
     def remove_actors_in_surrounding(location, distance):
