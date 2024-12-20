@@ -415,7 +415,7 @@ class OpenScenario(BasicScenario):
             for new_actor in new_actors:
                 self.other_actors.append(new_actor)
 
-    def create_actor(self, userData):
+    def create_actor(self):
         type = vehicle_type.Car
         for actor in self.other_actors:
             if actor.id < 0:

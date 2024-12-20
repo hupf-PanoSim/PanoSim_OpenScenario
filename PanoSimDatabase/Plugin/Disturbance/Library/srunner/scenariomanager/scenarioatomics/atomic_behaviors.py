@@ -4585,12 +4585,16 @@ class AddActor(AtomicBehavior):
     def update(self):
         new_status = py_trees.common.Status.RUNNING
         try:
-            new_actor = PanoSimDataProvider.request_new_actor(
-                self._actor_type, self._spawn_point, color=self._color)
-            if new_actor:
+            if self._actor_type == 'static.prop.container':
                 new_status = py_trees.common.Status.SUCCESS
+            else:
+                new_actor = PanoSimDataProvider.AddActor(self._actor_type, self._spawn_point, color=self._color)
+                # new_actor = PanoSimDataProvider.request_new_actor(self._actor_type, self._spawn_point, color=self._color)
+                if new_actor:
+                    new_status = py_trees.common.Status.SUCCESS
         except:  # pylint: disable=bare-except
             print("ActorSource unable to spawn actor")
+        return new_status
 
 
 class SwitchWrongDirectionTest(AtomicBehavior):

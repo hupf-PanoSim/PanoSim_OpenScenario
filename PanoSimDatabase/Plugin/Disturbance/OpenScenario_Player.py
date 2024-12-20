@@ -379,7 +379,7 @@ def ModelOutput(userData):
     try:
         if userData['time'] == 10:
             userData['scenario_runner'].manager.scenario_start()
-            userData['scenario'].create_actor(userData)
+            userData['scenario'].create_actor()
         else:
             userData['scenario_runner'].manager.ModelOutput(userData)
     except Exception as e:

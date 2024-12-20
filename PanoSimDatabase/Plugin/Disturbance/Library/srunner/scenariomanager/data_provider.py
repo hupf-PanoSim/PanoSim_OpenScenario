@@ -271,6 +271,7 @@ class PanoSimTransform:
         self.rotation = PanoSimRotation(rotation.yaw, rotation.pitch, rotation.roll)
         self.type = ''
         self.data = {}
+        self._get_actor_transform = True
 
     def get_forward_vector(self):
         return PanoSimLocation()
@@ -431,19 +432,21 @@ class PanoSimActor:
         if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.transform
         else:
-            self.transform.location.x = getVehicleX(self.id)
-            self.transform.location.y = getVehicleY(self.id)
-            self.transform.location.z = getVehicleZ(self.id)
-            self.transform.rotation.yaw = getVehicleYaw(self.id)
+            if PanoSimDataProvider._timestamp > 0:
+                self.transform.location.x = getVehicleX(self.id)
+                self.transform.location.y = getVehicleY(self.id)
+                self.transform.location.z = getVehicleZ(self.id)
+                self.transform.rotation.yaw = getVehicleYaw(self.id)
             return self.transform
 
     def get_location(self):
         if self.actor_category == 'bicycle' or self.actor_category == 'pedestrian':
             return self.transform.location
         else:
-            self.transform.location.x = getVehicleX(self.id)
-            self.transform.location.y = getVehicleY(self.id)
-            self.transform.location.z = getVehicleZ(self.id)
+            if PanoSimDataProvider._timestamp > 0:
+                self.transform.location.x = getVehicleX(self.id)
+                self.transform.location.y = getVehicleY(self.id)
+                self.transform.location.z = getVehicleZ(self.id)
             return self.transform.location
 
     def get_world(self):
@@ -1171,19 +1174,66 @@ class PanoSimDataProvider(object):
 
         id_offset = 0
         for actor in actor_list:
-            new = PanoSimActor()
-            new.id = -1 - id_offset
-            new.model = actor.model
-            new.attributes['role_name'] = actor.rolename
-            new.actor_category = actor.category
-            new.transform = actor.transform
-            new.speed = 0
-            PanoSimDataProvider._actor_pool[new.id] = new
-            PanoSimDataProvider.register_actor(new, new.transform)
-            actors.append(new)
-            id_offset += 1
+            if actor.category != 'misc':
+                if not actor.transform._get_actor_transform:
+                    continue
+                new = PanoSimActor()
+                new.id = -1 - id_offset
+                new.model = actor.model
+                new.attributes['role_name'] = actor.rolename
+                new.actor_category = actor.category
+                new.transform = actor.transform
+                new.speed = 0
+                PanoSimDataProvider._actor_pool[new.id] = new
+                PanoSimDataProvider.register_actor(new, new.transform)
+                actors.append(new)
+                id_offset += 1
 
         return actors
+
+    @staticmethod
+    def AddActor(model, spawn_point, rolename='scenario', autopilot=False,
+                          random_location=False, color=None, actor_category="car",
+                          attribute_filter=None, tick=True):
+        new = PanoSimActor()
+        new.model = model
+        new.attributes['role_name'] = rolename
+        new.actor_category = actor_category
+        new.transform = spawn_point
+        new.speed = 0
+
+        type = vehicle_type.Car
+        if new.actor_category == 'bicycle':
+            type = vehicle_type.NonMotorVehicle
+        elif new.actor_category == 'pedestrian':
+            type = vehicle_type.Pedestrian
+        if new.transform.type == 'WorldPosition':
+            x = new.transform.location.x
+            y = new.transform.location.y
+            new.id = addVehicle(x, y, 0, type)
+            if new.id > 100 and (type == vehicle_type.NonMotorVehicle or type == vehicle_type.Pedestrian):
+                moveTo(new.id, x, y, 90 - new.transform.rotation.yaw)
+        elif new.transform.type == 'RelativeRoadPosition':
+            ds = new.transform.data['ds']
+            ref = new.transform.data['entityRef']
+            if ref == 'hero':
+                new.id = addVehicleRelated(0, float(ds), 0, 0, lane_type.current, type)
+            else:
+                for k, v in PanoSimDataProvider._actor_pool.items():
+                    if v.attributes['role_name'] == ref and k > 100:
+                        new.id = addVehicleRelated(k, float(ds), 0, 0, lane_type.current, type)
+                        break
+        elif new.transform.type == 'RoadPosition':
+            print('create_actor:', new.id, new.transform.type, new.transform.data)
+        elif new.transform.type == 'LanePostion':
+            print('create_actor:', new.id, new.transform.type, new.transform.data)
+        if new.id > 100:
+            PanoSimDataProvider._actor_pool[new.id] = new
+            PanoSimDataProvider._actor_location_map[new] = new.transform.location
+            PanoSimDataProvider._actor_location_map[new] = new.transform
+            return new
+        return None
+
 
     @staticmethod
     def request_new_batch_actors(model, amount, spawn_points, autopilot=False,

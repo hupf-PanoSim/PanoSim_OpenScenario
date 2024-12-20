@@ -681,6 +681,12 @@ class OpenScenarioParser(object):
                         obj_actor = actor
                         actor_transform = obj_actor.get_transform()
                         break
+                if obj_actor is None:
+                    for _, actor in PanoSimDataProvider._actor_pool.items():
+                        if 'role_name' in actor.attributes and actor.attributes['role_name'] == obj:
+                            obj_actor = actor
+                            actor_transform = obj_actor.get_transform()
+                            break
 
             if obj_actor is None or actor_transform is None:
                 raise AttributeError("Object '{}' provided as position reference is not known".format(obj))

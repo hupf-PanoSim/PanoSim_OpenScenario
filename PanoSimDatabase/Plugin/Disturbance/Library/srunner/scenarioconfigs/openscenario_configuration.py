@@ -205,8 +205,8 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
                 for pedestrian in obj.iter("Pedestrian"):
                     self._extract_pedestrian_information(obj, rolename, pedestrian, args)
 
-                # for misc in obj.iter("MiscObject"):
-                #     self._extract_misc_information(obj, rolename, misc, args)
+                for misc in obj.iter("MiscObject"):
+                    self._extract_misc_information(obj, rolename, misc, args)
 
         all_actor_transforms_set = False
         while not all_actor_transforms_set:
@@ -286,6 +286,7 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
                     if transform:
                         actor_transform = transform
         if not actor_found:
+            actor_transform._get_actor_transform = False
             self.logger.warning(" Warning: The actor '%s' was not assigned an initial position. Using (0,0,0)", actor_name)
         return actor_transform
 
