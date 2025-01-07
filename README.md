@@ -37,9 +37,20 @@ Follow these steps to set up the run environment and install the package:
 
 ![image](docs/images/open.jpg)
 
-
 ![image](docs/images/result.jpg)
 
+
+| Press Key | Signal          |
+|-----------|-----------------|
+| Page Up   | forward gear    |
+| Page Down | reverse gear    |
+| Up        | speed up        |
+| Down      | brspeed down    |
+| Left      | turn left       |
+| Right     | turn right      |
+
+
+### control ego by keyboard
 
 ## Special Thanks
 
