@@ -45,7 +45,7 @@ Follow these steps to set up the run environment and install the package:
 
 - **CARLA Simulator**: [CARLA Simulator GitHub](https://github.com/carla-simulator/carla)
 
-- **ScenarioRunner for CARLA**: [ScenarioRunner for CARLA Website](https://github.com/carla-simulator/scenario_runner)
+- **ScenarioRunner for CARLA**: [ScenarioRunner for CARLA GitHub](https://github.com/carla-simulator/scenario_runner)
 
 ## License
 
