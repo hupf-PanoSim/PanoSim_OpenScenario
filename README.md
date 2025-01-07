@@ -1,5 +1,5 @@
 
-[PanoSim](https://www.panosim.com/) V33 began to provide support for [ASAM](https://www.asam.net/) - [OpenScenario 1.0](https://publications.pages.asam.net/standards/ASAM_OpenSCENARIO/ASAM_OpenSCENARIO_XML/latest/index.html). Here are some examples to show how to run scenario files (osc) in PanoSim.
+[PanoSim](https://www.panosim.com/) V33 began to provide support for [ASAM](https://www.asam.net/) - [OpenScenario 1.0](https://publications.pages.asam.net/standards/ASAM_OpenSCENARIO/ASAM_OpenSCENARIO_XML/latest/index.html). Here are some examples to show how to run scenario files (xosc) in PanoSim.
 
 
 ## Installation
