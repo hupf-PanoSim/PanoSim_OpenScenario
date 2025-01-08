@@ -410,8 +410,8 @@ class OpenScenario(BasicScenario):
                                 config.other_actors.remove(actor)
 
             new_actors = PanoSimDataProvider.request_new_actors(config.other_actors)
-            if not new_actors:
-                raise Exception("Error: Unable to add actors")
+            # if not new_actors:
+            #     raise Exception("Error: Unable to add actors")
             for new_actor in new_actors:
                 self.other_actors.append(new_actor)
 
