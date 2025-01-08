@@ -60,4 +60,4 @@ Follow these steps to set up the run environment and install the package:
 
 ## License
 
-The software is licensed under the MIT License - see [`LICENSE`](https://github.com/liyanlee/PanoSim_OpenScenario/LICENSE) for more details.
+The software is licensed under the MIT License - see [`LICENSE`](./LICENSE.txt) for more details.
